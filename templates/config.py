@@ -1,7 +1,7 @@
 from pygame import Surface
 
-from .classes import Recurface
-from .constants import Constants
+from ..recurface import Recurface
+from ..constants import Constants
 
 
 class Config:

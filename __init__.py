@@ -1,2 +1,4 @@
-from .classes import Game, Recurface
-from .config import Config as ConfigTemplate
+from .game import Game
+from .recurface import Recurface
+
+from .templates import Config as ConfigTemplate
