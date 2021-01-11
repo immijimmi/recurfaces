@@ -5,6 +5,8 @@ from typing import Iterable, Tuple, Optional
 
 
 class Recurface:
+    """A framework for organising and nesting pygame surfaces"""
+
     def __init__(self, surface: Surface, position: Iterable[int]):
         self.__surface = surface  # Should hold a pygame Surface
         self.__position = list(position)  # (x, y) position to blit to in the containing Surface
@@ -117,3 +119,9 @@ class Recurface:
         self.__rect = None
         self.__rect__previous = None
         self.__rect__additional = []
+
+    def __del__(self):
+        for child in self.__children:
+            self.remove_child(child)
+
+        self.parent = None
