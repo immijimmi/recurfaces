@@ -1,7 +1,7 @@
 class Recurface:
     def __init__(self, surface, position):
-        self.__surface = surface
-        self.__position = list(position)
+        self.__surface = surface  # Should hold a pygame Surface
+        self.__position = list(position)  # (x, y) position to blit to in the containing Surface
 
         self.__parent = None
         self.__children = set()
@@ -51,27 +51,32 @@ class Recurface:
         return self.__parent
 
     @parent.setter
-    def parent(self, value):
+    def parent(self, recurface):
         if self.__parent:
-            self.__parent.remove_child(self)
+            if self.__parent is recurface:
+                return  # Parent is already correctly set
 
-        self.__parent = value
-        self.__parent.add_child(self)
+            self.__parent.remove_child(self)  # Remove from any previous parent
+
+        self.__parent = recurface
+        if self.__parent:
+            self.__parent.add_child(self)
 
     @property
     def children(self):
         return frozenset(self.__children)
 
     def add_child(self, recurface):
-        if recurface.parent != self:
-            recurface.parent = self
+        if recurface in self.__children:
+            return  # Child is already added
 
-        recurface.reset()
         self.__children.add(recurface)
+        recurface.parent = self
+        recurface.reset()
 
     def remove_child(self, recurface):
-        recurface.parent = None
         self.__children.remove(recurface)
+        recurface.parent = None
 
     def render(self, destination):
         result = []
