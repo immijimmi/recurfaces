@@ -5,7 +5,7 @@ from typing import Iterable, Tuple, Optional
 
 
 class Recurface:
-    """A framework for organising and nesting pygame surfaces"""
+    """A pygame framework used to organise Surfaces into a chain structure"""
 
     def __init__(self, surface: Surface, position: Iterable[int]):
         self.__surface = surface  # Should hold a pygame Surface
