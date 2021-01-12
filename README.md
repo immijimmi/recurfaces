@@ -2,15 +2,13 @@
 
 ###### A pygame framework used to organise Surfaces into a chain structure
 
-## Intended Usage
-
-### Example Game Logic
+### Example Game Boilerplate
 ```python
 import pygame
 from recurfaces import Recurface
 
 
-# Setup
+# pygame setup
 pygame.init()
 window = pygame.display.set_mode((800, 600))
 clock = pygame.time.Clock()
