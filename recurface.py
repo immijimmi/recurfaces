@@ -24,6 +24,9 @@ class Recurface:
 
     @surface.setter
     def surface(self, value: Surface):
+        if self.__surface is value:
+            return  # Surface is already correctly set
+
         self.__rect__previous = self.__rect
         self.__surface = value
 
@@ -33,6 +36,13 @@ class Recurface:
 
     @position.setter
     def position(self, value: Optional[Iterable[int]]):
+        if self.__position is None:
+            if value is None:
+                return  # Position is already correctly set
+        else:
+            if self.__position[0] == value[0] and self.__position[1] == value[1]:
+                return  # Position is already correctly set
+
         if self.__position:
             self.__rect__previous = self.__rect
 
@@ -50,6 +60,9 @@ class Recurface:
         if not self.__position:
             raise ValueError("position is not currently set")
 
+        if self.__position[0] == value:
+            return  # Position is already correctly set
+
         self.__rect__previous = self.__rect
         self.__position[0] = value
 
@@ -64,6 +77,9 @@ class Recurface:
     def y(self, value: int):
         if not self.__position:
             raise ValueError("position is not currently set")
+
+        if self.__position[1] == value:
+            return  # Position is already correctly set
 
         self.__rect__previous = self.__rect
         self.__position[1] = value
