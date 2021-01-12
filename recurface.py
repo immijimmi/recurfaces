@@ -100,6 +100,14 @@ class Recurface:
         self.__children.remove(child)
         child.parent = None
 
+    def move(self, x_offset: int = 0, y_offset: int = 0) -> Tuple[int]:
+        """Offsets the recurface's position by the provided amounts. This function also returns the new position."""
+
+        self.x += x_offset
+        self.y += y_offset
+
+        return self.position
+
     def add_update_rects(self, rects: Iterable[Optional[Rect]], update_position: bool = False) -> None:
         """
         Stores provided rects to be updated on the next render.
