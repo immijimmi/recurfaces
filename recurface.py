@@ -14,6 +14,7 @@ class Recurface:
         self.__parent = None
         self.__children = set()
 
+        self.__surface__working = None
         self.__rect = None
         self.__rect__previous = None
         self.__rect__additional = []
@@ -157,8 +158,9 @@ class Recurface:
 
             return result
 
+        self.__surface__working = self.__surface.copy()
         for child in self.__children:  # Render all child objects and collect returned Rects
-            rects = child.render(self.__surface)
+            rects = child.render(self.__surface__working)
 
             for rect in rects:
                 if rect:
@@ -167,7 +169,7 @@ class Recurface:
 
                     result.append(rect)
 
-        self.__rect = destination.blit(self.__surface, self.__position)
+        self.__rect = destination.blit(self.__surface__working, self.__position)
 
         if not is_rendered:  # On the first render, return the full surface
             return [self.__rect]
