@@ -135,11 +135,13 @@ class Recurface:
             if not self.__position:
                 raise ValueError("position is not currently set")
 
-            for rect in rects:
-                rect.x += self.__position[0]
-                rect.y += self.__position[1]
+        for rect in rects:
+            if rect:
+                if update_position:
+                    rect.x += self.__position[0]
+                    rect.y += self.__position[1]
 
-        self.__rect__additional += rects
+                self.__rect__additional.append(rect)
 
     def render(self, destination: Surface) -> Iterable[Optional[Rect]]:
         """
