@@ -118,7 +118,12 @@ class Recurface:
         child.parent = None
 
     def move(self, x_offset: int = 0, y_offset: int = 0) -> Tuple[int]:
-        """Offsets the recurface's position by the provided amounts. This function also returns the new position."""
+        """
+        Adds the provided offset values to the recurface's current position.
+        Returns a tuple representing the updated .position.
+
+        Note: If .position is currently set to None, this will throw a ValueError
+        """
 
         self.x += x_offset
         self.y += y_offset
@@ -127,8 +132,11 @@ class Recurface:
 
     def add_update_rects(self, rects: Iterable[Optional[Rect]], update_position: bool = False) -> None:
         """
-        Stores provided rects to be updated on the next render.
-        If update_position is True, the rects are offset by self.position before storing
+        Stores the provided pygame rects to be returned by this recurface on the next render() call.
+        Used internally to handle removing child objects.
+        If update_position is True, the provided rects will be offset by .position before storing.
+
+        Note: If .position is currently set to None and update_position is True, this will throw a ValueError
         """
 
         if update_position:
@@ -145,8 +153,10 @@ class Recurface:
 
     def render(self, destination: Surface) -> Iterable[Optional[Rect]]:
         """
-        Blits surfaces to the provided destination for this object and any of its children.
-        This function should be called on top-level (parent-less) recurfaces once per game tick, and
+        Draws all child surfaces to a copy of .surface, then draws the copy to the provided destination.
+        Returns a list of pygame rects representing updated areas of the provided destination.
+
+        Note: This function should be called on top-level (parent-less) recurfaces once per game tick, and
         pygame.display.update() should be passed all returned rects
         """
 
@@ -188,8 +198,9 @@ class Recurface:
 
     def unlink(self) -> None:
         """
-        Removes this object from its place in the chain,
-        attaching any child objects to this object's parent if there is one
+        Detaches the recurface from its parent and children.
+        If there is a parent recurface, all children are added to the parent.
+        This effectively removes the recurface from its place in the chain without leaving the chain broken
         """
 
         for child in self.children:
@@ -209,8 +220,7 @@ class Recurface:
 
     def __del__(self):
         """
-        Note that deleting this object will leave any child objects with no parent object.
-        Calling .unlink() before deleting will attach child objects to this object's parent if there is one
+        Deleting the recurface will detach it from its parent and children, without linking the children to the parent.
         """
 
         for child in self.__children:
