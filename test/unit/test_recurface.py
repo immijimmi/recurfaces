@@ -23,7 +23,7 @@ def test_first_valid_render_returns_correct_rect():
     assert rects == [surface_1.get_rect()]
 
 
-def test_no_position_once_rendered_returns_previous_rect():  #####
+def test_no_position_once_rendered_returns_previous_rect():
     surface_bg = Surface((800, 600))
     surface_1 = Surface((300, 300))
 
