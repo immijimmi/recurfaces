@@ -1,13 +1,13 @@
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import Surface, Rect
-from typing import Iterable, Tuple, Optional
+from typing import Sequence, List, Tuple, Optional
 
 
 class Recurface:
     """A pygame framework used to organise Surfaces into a chain structure"""
 
-    def __init__(self, surface: Surface, position: Optional[Iterable[int]] = None):
+    def __init__(self, surface: Surface, position: Optional[Sequence[int]] = None):
         self.__surface = surface  # Should hold a pygame Surface
         self.__position = list(position) if position else None  # (x, y) position to blit to in the containing Surface
 
@@ -36,9 +36,9 @@ class Recurface:
         return tuple(self.__position) if self.__position else None
 
     @position.setter
-    def position(self, value: Optional[Iterable[int]]):
-        if self.__position is None:
-            if value is None:
+    def position(self, value: Optional[Sequence[int]]):
+        if self.__position is None or value is None:
+            if self.__position == value:
                 return  # Position is already correctly set
         else:
             if self.__position[0] == value[0] and self.__position[1] == value[1]:
@@ -47,7 +47,7 @@ class Recurface:
         if self.__position:
             self.__rect__previous = self.__rect
 
-        self.__position = list(value) if value else None
+        self.__position = [value[0], value[1]] if value else None
 
     @property
     def x(self) -> int:
@@ -130,7 +130,7 @@ class Recurface:
 
         return self.position
 
-    def add_update_rects(self, rects: Iterable[Optional[Rect]], update_position: bool = False) -> None:
+    def add_update_rects(self, rects: Sequence[Optional[Rect]], update_position: bool = False) -> None:
         """
         Stores the provided pygame rects to be returned by this recurface on the next render() call.
         Used internally to handle removing child objects.
@@ -151,7 +151,7 @@ class Recurface:
 
                 self.__rect__additional.append(rect)
 
-    def render(self, destination: Surface) -> Iterable[Optional[Rect]]:
+    def render(self, destination: Surface) -> List[Optional[Rect]]:
         """
         Draws all child surfaces to a copy of .surface, then draws the copy to the provided destination.
         Returns a list of pygame rects representing updated areas of the provided destination.
