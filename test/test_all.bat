@@ -1,3 +1,0 @@
-cd ..
-py.test
-pause

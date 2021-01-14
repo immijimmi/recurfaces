@@ -34,3 +34,17 @@ def test_no_position_once_rendered_returns_previous_rect():
     rects = recurface.render(surface_bg)
 
     assert rects == [surface_1.get_rect()]
+
+
+def test_new_surface_once_rendered_returns_both_surface_rects():
+    surface_bg = Surface((800, 600))
+    surface_1 = Surface((300, 300))
+    surface_2 = Surface((200, 200))
+
+    recurface = Recurface(surface_1, (0, 0))
+    recurface.render(surface_bg)
+
+    recurface.surface = surface_2
+    rects = recurface.render(surface_bg)
+
+    assert rects == [surface_1.get_rect(), surface_2.get_rect()]
