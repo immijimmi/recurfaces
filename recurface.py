@@ -221,9 +221,7 @@ class Recurface:
 
         if forward_rects and self.__parent:
             if self.__parent:
-                self.__parent.add_update_rects(
-                    [self.__rect, *self.__rect__additional],
-                    update_position=True)
+                self.__parent.add_update_rects([self.__rect, *self.__rect__additional])
 
         self.__rect = None
         self.__rect__previous = None
