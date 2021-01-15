@@ -210,6 +210,7 @@ class Recurface:
         self.parent = None
 
         for child in self.children:
+            child.move(*self.position)
             child.parent = parent
 
     def _reset(self, forward_rects=False) -> None:
@@ -225,13 +226,3 @@ class Recurface:
         self.__rect = None
         self.__rect_previous = None
         self.__rect_additional = []
-
-    def __del__(self):
-        """
-        Deleting the recurface will detach it from its parent and children, without linking the children to the parent.
-        """
-
-        self.parent = None
-
-        for child in self.children:
-            self.remove_child(child)

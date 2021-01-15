@@ -124,7 +124,3 @@ Recurface.**unlink**(*self*)\
 &nbsp;&nbsp;&nbsp;&nbsp;If there is a parent recurface, all children are added to the parent.\
 &nbsp;&nbsp;&nbsp;&nbsp;This effectively removes the recurface from its place in the chain without leaving the chain broken.\
 &nbsp;
-
-Recurface.**\_\_del\_\_**(*self*)\
-&nbsp;&nbsp;&nbsp;&nbsp;Deleting the recurface will detach it from its parent and children, *without* linking the children to the parent.\
-&nbsp;
