@@ -14,10 +14,9 @@ class Recurface:
         self.__parent = None
         self.__children = set()
 
-        self.__surface__working = None
         self.__rect = None
-        self.__rect__previous = None
-        self.__rect__additional = []
+        self.__rect_previous = None
+        self.__rect_additional = []
 
     @property
     def surface(self) -> Surface:
@@ -28,7 +27,7 @@ class Recurface:
         if self.__surface is value:
             return  # Surface is already correctly set
 
-        self.__rect__previous = self.__rect
+        self.__rect_previous = self.__rect
         self.__surface = value
 
     @property
@@ -45,7 +44,7 @@ class Recurface:
                 return  # Position is already correctly set
 
         if self.__position:
-            self.__rect__previous = self.__rect
+            self.__rect_previous = self.__rect
 
         self.__position = [value[0], value[1]] if value else None
 
@@ -64,7 +63,7 @@ class Recurface:
         if self.__position[0] == value:
             return  # Position is already correctly set
 
-        self.__rect__previous = self.__rect
+        self.__rect_previous = self.__rect
         self.__position[0] = value
 
     @property
@@ -82,7 +81,7 @@ class Recurface:
         if self.__position[1] == value:
             return  # Position is already correctly set
 
-        self.__rect__previous = self.__rect
+        self.__rect_previous = self.__rect
         self.__position[1] = value
 
     @property
@@ -112,7 +111,8 @@ class Recurface:
 
         self.__children.add(child)
         child.parent = self
-        child._reset()
+
+        child._reset()  # Extra call to reset() for redundancy
 
     def remove_child(self, child: "Recurface") -> None:
         if child in self.__children:
@@ -142,16 +142,16 @@ class Recurface:
         """
 
         if update_position:
-            if not self.__position:
+            if not self.position:
                 raise ValueError("position is not currently set")
 
         for rect in rects:
             if rect:
                 if update_position:
-                    rect.x += self.__position[0]
-                    rect.y += self.__position[1]
+                    rect.x += self.x
+                    rect.y += self.y
 
-                self.__rect__additional.append(rect)
+                self.__rect_additional.append(rect)
 
     def render(self, destination: Surface) -> List[Optional[Rect]]:
         """
@@ -164,38 +164,38 @@ class Recurface:
 
         result = []
         is_rendered = bool(self.__rect)  # If surface has been rendered previously
-        is_updated = bool(self.__rect__previous)  # If surface has been changed or moved
+        is_updated = bool(self.__rect_previous)  # If surface has been changed or moved
 
-        if self.__rect__additional:  # If there are any extra areas that need updating
-            result += self.__rect__additional
-            self.__rect__additional = []
+        if self.__rect_additional:  # If there are any extra areas that need updating
+            result += self.__rect_additional
+            self.__rect_additional = []
 
-        if not self.__position:  # If position is None, nothing should display to the screen
+        if not self.position:  # If position is None, nothing should display to the screen
             if is_rendered:  # If something was previously rendered, that area of the screen needs updating to remove it
-                result.append(self.__rect__previous)
-                self.__rect__previous = None
+                result.append(self.__rect_previous)
+                self.__rect_previous = None
                 self.__rect = None  # is_rendered will now be False on the next .render call
             return result
 
-        self.__surface__working = self.__surface.copy()
-        for child in self.__children:  # Render all child objects and collect returned Rects
-            rects = child.render(self.__surface__working)
+        surface_working = self.surface.copy()
+        for child in self.children:  # Render all child objects and collect returned Rects
+            rects = child.render(surface_working)
 
             for rect in rects:
                 if rect:
-                    rect.x += self.__position[0]
-                    rect.y += self.__position[1]
+                    rect.x += self.x
+                    rect.y += self.y
 
                     result.append(rect)
 
-        self.__rect = destination.blit(self.__surface__working, self.__position)
+        self.__rect = destination.blit(surface_working, self.position)
 
         if not is_rendered:  # On the first render, update the full surface
             result.append(self.__rect)
 
         elif is_updated:
-            result += [self.__rect__previous, self.__rect]
-            self.__rect__previous = None
+            result += [self.__rect_previous, self.__rect]
+            self.__rect_previous = None
 
         return result
 
@@ -206,12 +206,11 @@ class Recurface:
         This effectively removes the recurface from its place in the chain without leaving the chain broken
         """
 
-        self._reset(forward_rects=True)
+        parent = self.parent
+        self.parent = None
 
         for child in self.children:
-            child.parent = self.__parent
-
-        self.parent = None
+            child.parent = parent
 
     def _reset(self, forward_rects=False) -> None:
         """
@@ -219,22 +218,20 @@ class Recurface:
         This should only be done if the parent object is being changed
         """
 
-        if forward_rects and self.__parent:
-            if self.__parent:
-                self.__parent.add_update_rects([self.__rect, *self.__rect__additional])
+        if forward_rects and self.parent:
+            if self.parent:
+                self.parent.add_update_rects([self.__rect, *self.__rect_additional])
 
         self.__rect = None
-        self.__rect__previous = None
-        self.__rect__additional = []
+        self.__rect_previous = None
+        self.__rect_additional = []
 
     def __del__(self):
         """
         Deleting the recurface will detach it from its parent and children, without linking the children to the parent.
         """
 
-        self._reset(forward_rects=True)
+        self.parent = None
 
         for child in self.children:
             self.remove_child(child)
-
-        self.parent = None
