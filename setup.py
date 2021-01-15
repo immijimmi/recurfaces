@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 with open("README.md", "r", encoding="utf-8") as readme_file:
     long_description = readme_file.read()
@@ -8,7 +8,7 @@ setup(
     packages=[
         "recurfaces"
     ],
-    version="0.1.0",
+    version="0.1.1",
     license="LGPLv3",
     description="A pygame framework used to organise Surfaces into a chain structure",
     long_description_content_type="text/markdown",
