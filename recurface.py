@@ -114,8 +114,9 @@ class Recurface:
         child._reset()
 
     def remove_child(self, child: "Recurface") -> None:
-        self.__children.remove(child)
-        child.parent = None
+        if child in self.__children:
+            self.__children.remove(child)
+            child.parent = None
 
     def move(self, x_offset: int = 0, y_offset: int = 0) -> Tuple[int]:
         """
