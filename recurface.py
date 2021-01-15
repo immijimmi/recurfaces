@@ -161,13 +161,18 @@ class Recurface:
         """
 
         result = []
-        is_rendered = bool(self.__rect)  # Surface has been rendered previously
+        is_rendered = bool(self.__rect)  # If surface has been rendered previously
+        is_updated = bool(self.__rect__previous)  # If surface has been changed or moved
+
+        if self.__rect__additional:  # If there are any extra areas that need updating
+            result += self.__rect__additional
+            self.__rect__additional = []
 
         if not self.__position:  # If position is None, nothing should display to the screen
             if is_rendered:  # If something was previously rendered, that area of the screen needs updating to remove it
-                result.append(self.__rect)
+                result.append(self.__rect__previous)
+                self.__rect__previous = None
                 self.__rect = None  # is_rendered will now be False on the next .render call
-
             return result
 
         self.__surface__working = self.__surface.copy()
@@ -183,16 +188,12 @@ class Recurface:
 
         self.__rect = destination.blit(self.__surface__working, self.__position)
 
-        if not is_rendered:  # On the first render, return the full surface
-            return [self.__rect]
+        if not is_rendered:  # On the first render, update the full surface
+            result.append(self.__rect)
 
-        if self.__rect__previous:  # If the surface was changed or moved
+        elif is_updated:
             result += [self.__rect__previous, self.__rect]
             self.__rect__previous = None
-
-        if self.__rect__additional:  # If there are any extra areas that need updating
-            result += self.__rect__additional
-            self.__rect__additional = []
 
         return result
 
