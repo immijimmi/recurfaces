@@ -95,6 +95,7 @@ class Recurface:
             if self.__parent is value:
                 return  # Parent is already correctly set
 
+            self._reset(forward_rects=True)
             self.__parent.remove_child(self)  # Remove from any previous parent
 
         self.__parent = value
@@ -205,16 +206,24 @@ class Recurface:
         This effectively removes the recurface from its place in the chain without leaving the chain broken
         """
 
+        self._reset(forward_rects=True)
+
         for child in self.children:
             child.parent = self.__parent
 
         self.parent = None
 
-    def _reset(self) -> None:
+    def _reset(self, forward_rects=False) -> None:
         """
         Sets variables which hold the object's rendering details back to their default values.
         This should only be done if the parent object is being changed
         """
+
+        if forward_rects and self.__parent:
+            if self.__parent:
+                self.__parent.add_update_rects(
+                    [self.__rect, *self.__rect__additional],
+                    update_position=True)
 
         self.__rect = None
         self.__rect__previous = None
@@ -225,11 +234,9 @@ class Recurface:
         Deleting the recurface will detach it from its parent and children, without linking the children to the parent.
         """
 
+        self._reset(forward_rects=True)
+
         for child in self.__children:
             self.remove_child(child)
 
-        if self.__parent:
-            self.__parent.add_update_rects([self.__rect, self.__rect__previous, *self.__rect__additional])
-            self._reset()
-
-            self.parent = None
+        self.parent = None
