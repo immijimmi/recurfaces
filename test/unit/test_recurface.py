@@ -132,23 +132,3 @@ def test_unlink_ties_children_to_parent():
     recurface_2.unlink()
 
     assert [*recurface_1.children] == [recurface_3] and recurface_3.parent == recurface_1
-
-
-def test_deleting_leaves_chain_broken():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
-    surface_2 = Surface((100, 80))
-    surface_3 = Surface((70, 60))
-
-    recurface_1 = Recurface(surface_1, (10, 20))
-    recurface_2 = Recurface(surface_2, (30, 40))
-    recurface_3 = Recurface(surface_2, (50, 60))
-
-    recurface_1.add_child(recurface_2)
-    recurface_2.add_child(recurface_3)
-
-    assert [*recurface_1.children] == [recurface_2] and [*recurface_2.children] == [recurface_3]
-
-    del recurface_2
-
-    assert [*recurface_1.children] == [] and recurface_3.parent is None
