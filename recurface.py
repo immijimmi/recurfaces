@@ -234,7 +234,7 @@ class Recurface:
 
         self._reset(forward_rects=True)
 
-        for child in self.__children:
+        for child in self.children:
             self.remove_child(child)
 
         self.parent = None
