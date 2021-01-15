@@ -213,6 +213,8 @@ class Recurface:
             child.move(*self.position)
             child.parent = parent
 
+        self._reset()
+
     def _reset(self, forward_rects=False) -> None:
         """
         Sets variables which hold the object's rendering details back to their default values.
