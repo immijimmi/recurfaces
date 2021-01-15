@@ -1,6 +1,6 @@
 from pygame import Surface, Rect
 
-from ...recurface import Recurface
+from recurfaces import Recurface
 
 
 def test_no_position_on_first_render_returns_no_rects():
