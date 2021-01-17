@@ -130,7 +130,6 @@ def test_remove_child_after_child_updated_returns_correct_rects():
 
 
 def test_unlink_ties_children_to_parent():
-    surface_bg = Surface((800, 600))
     surface_1 = Surface((300, 200))
     surface_2 = Surface((100, 80))
     surface_3 = Surface((70, 60))
