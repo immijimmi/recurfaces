@@ -1,168 +1,120 @@
+import pytest
 from pygame import Surface, Rect
 
 from recurfaces import Recurface
 
 
-def test_no_position_on_first_render_returns_no_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
+@pytest.fixture
+def res():
+    class RecurfaceResources:
+        def __init__(self):
+            self.surface_bg = Surface((800, 600))
+            self.surface_1 = Surface((300, 200))
+            self.surface_2 = Surface((100, 80))
+            self.surface_3 = Surface((70, 60))
 
-    recurface = Recurface(surface_1)
-    rects = recurface.render(surface_bg)
+            self.recurface_no_position = Recurface(self.surface_1)
+            self.recurface_1 = Recurface(self.surface_1, (10, 20))
+            self.recurface_2 = Recurface(self.surface_2, (30, 40))
+            self.recurface_3 = Recurface(self.surface_3, (50, 60))
 
-    assert rects == []
-
-
-def test_first_valid_render_returns_correct_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
-
-    recurface = Recurface(surface_1, (10, 20))
-    rects = recurface.render(surface_bg)
-
-    assert rects == [Rect(10, 20, 300, 200)]
+    yield RecurfaceResources()
 
 
-def test_move_position_after_rendered_returns_correct_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
+class TestRecurface:
+    def test_no_position_on_first_render_returns_no_rects(self, res):
+        rects = res.recurface_no_position.render(res.surface_bg)
 
-    recurface = Recurface(surface_1, (10, 20))
-    recurface.render(surface_bg)
+        assert rects == []
 
-    recurface.move(15, 30)
-    recurface.x += 3
-    recurface.y += 6
-    rects = recurface.render(surface_bg)
+    def test_first_valid_render_returns_correct_rects(self, res):
+        rects = res.recurface_1.render(res.surface_bg)
 
-    assert rects == [Rect(10, 20, 300, 200), Rect(28, 56, 300, 200)]
+        assert rects == [Rect(10, 20, 300, 200)]
 
+    def test_move_position_after_render_returns_correct_rects(self, res):
+        res.recurface_1.render(res.surface_bg)
 
-def test_position_none_after_rendered_returns_correct_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
+        res.recurface_1.move(15, 30)
+        res.recurface_1.x += 3
+        res.recurface_1.y += 6
+        rects = res.recurface_1.render(res.surface_bg)
 
-    recurface = Recurface(surface_1, (10, 20))
-    recurface.render(surface_bg)
+        assert rects == [Rect(10, 20, 300, 200), Rect(28, 56, 300, 200)]
 
-    recurface.position = None
-    rects = recurface.render(surface_bg)
+    def test_position_none_after_render_returns_correct_rects(self, res):
+        res.recurface_1.render(res.surface_bg)
 
-    assert rects == [Rect(10, 20, 300, 200)]
+        res.recurface_1.position = None
+        rects = res.recurface_1.render(res.surface_bg)
 
+        assert rects == [Rect(10, 20, 300, 200)]
 
-def test_new_surface_after_rendered_returns_correct_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
-    surface_2 = Surface((200, 400))
+    def test_new_surface_after_render_returns_correct_rects(self, res):
+        res.recurface_1.render(res.surface_bg)
 
-    recurface = Recurface(surface_1, (10, 20))
-    recurface.render(surface_bg)
+        res.recurface_1.surface = res.surface_2
+        rects = res.recurface_1.render(res.surface_bg)
 
-    recurface.surface = surface_2
-    rects = recurface.render(surface_bg)
+        assert rects == [Rect(10, 20, 300, 200), Rect(10, 20, 100, 80)]
 
-    assert rects == [Rect(10, 20, 300, 200), Rect(10, 20, 200, 400)]
+    def test_new_attributes_after_render_returns_correct_rects(self, res):
+        res.recurface_1.render(res.surface_bg)
 
+        res.recurface_1.surface = res.surface_2
+        res.recurface_1.position = (40, 30)
+        res.recurface_1.add_child(res.recurface_2)
+        rects = res.recurface_1.render(res.surface_bg)
 
-def test_new_surface_and_position_after_rendered_returns_correct_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
-    surface_2 = Surface((200, 400))
+        truncated_rect = Rect(70, 70, 70, 40)  # Some of recurface_2's edges are outside the boundaries of its parent
+        assert rects == [truncated_rect, Rect(10, 20, 300, 200), Rect(40, 30, 100, 80)]
 
-    recurface = Recurface(surface_1, (10, 20))
-    recurface.render(surface_bg)
+    def test_add_update_rects_are_returned_next_render(self, res):
+        res.recurface_1.add_update_rects([Rect(1, 2, 3, 4)])
+        rects = res.recurface_1.render(res.surface_bg)
 
-    recurface.surface = surface_2
-    recurface.position = (40, 30)
-    rects = recurface.render(surface_bg)
+        assert rects == [Rect(1, 2, 3, 4), Rect(10, 20, 300, 200)]
 
-    assert rects == [Rect(10, 20, 300, 200), Rect(40, 30, 200, 400)]
+        res.recurface_1.add_update_rects([Rect(1, 2, 3, 4)], update_position=True)
+        rects = res.recurface_1.render(res.surface_bg)
 
+        assert rects == [Rect(11, 22, 3, 4)]
 
-def test_add_update_rects_are_returned_next_render():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
+    def test_add_child_after_child_updated_returns_correct_rects(self, res):
+        res.recurface_2.render(res.surface_bg)
+        res.recurface_2.position = (40, 50)
 
-    recurface = Recurface(surface_1, (10, 20))
-    recurface.add_update_rects([Rect(1, 2, 3, 4)])
-    rects = recurface.render(surface_bg)
+        res.recurface_1.add_child(res.recurface_2)  # This will reset recurface_2
+        rects = res.recurface_1.render(res.surface_bg)
 
-    assert rects == [Rect(1, 2, 3, 4), Rect(10, 20, 300, 200)]
+        assert rects == [Rect(50, 70, 100, 80), Rect(10, 20, 300, 200)]
 
-    recurface.add_update_rects([Rect(1, 2, 3, 4)], update_position=True)
-    rects = recurface.render(surface_bg)
+    def test_remove_child_after_child_updated_returns_correct_rects(self, res):
+        res.recurface_1.add_child(res.recurface_2)
+        res.recurface_1.render(res.surface_bg)
 
-    assert rects == [Rect(11, 22, 3, 4)]
+        res.recurface_2.position = (40, 50)
+        res.recurface_1.remove_child(res.recurface_2)
+        rects = res.recurface_1.render(res.surface_bg)
 
+        assert rects == [Rect(40, 60, 100, 80)]
 
-def test_add_child_after_child_updated_returns_correct_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
-    surface_2 = Surface((100, 80))
+    def test_unlink_ties_children_to_parent(self, res):
+        res.recurface_1.add_child(res.recurface_2)
+        res.recurface_2.add_child(res.recurface_3)
 
-    recurface_1 = Recurface(surface_1, (10, 20))
-    recurface_2 = Recurface(surface_2, (30, 40))
-    recurface_2.render(surface_bg)
-    recurface_2.position = (40, 50)
+        assert [*res.recurface_1.children] == [res.recurface_2] and [*res.recurface_2.children] == [res.recurface_3]
 
-    recurface_1.add_child(recurface_2)  # This will reset recurface_2
-    rects = recurface_1.render(surface_bg)
+        res.recurface_2.unlink()
 
-    assert rects == [Rect(50, 70, 100, 80), Rect(10, 20, 300, 200)]
+        assert [*res.recurface_1.children] == [res.recurface_3] and res.recurface_3.parent == res.recurface_1
 
+    def test_unlink_returns_correct_rects(self, res):
+        res.recurface_1.add_child(res.recurface_2)
+        res.recurface_2.add_child(res.recurface_3)
+        res.recurface_2.move(4, 5)
 
-def test_remove_child_after_child_updated_returns_correct_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
-    surface_2 = Surface((100, 80))
+        res.recurface_2.unlink()
+        rects = res.recurface_1.render(res.surface_bg)
 
-    recurface_1 = Recurface(surface_1, (10, 20))
-    recurface_2 = Recurface(surface_2, (30, 40))
-    recurface_1.add_child(recurface_2)
-    recurface_1.render(surface_bg)
-
-    recurface_2.position = (40, 50)
-    recurface_1.remove_child(recurface_2)
-    rects = recurface_1.render(surface_bg)
-
-    assert rects == [Rect(40, 60, 100, 80)]
-
-
-def test_unlink_ties_children_to_parent():
-    surface_1 = Surface((300, 200))
-    surface_2 = Surface((100, 80))
-    surface_3 = Surface((70, 60))
-
-    recurface_1 = Recurface(surface_1, (10, 20))
-    recurface_2 = Recurface(surface_2, (30, 40))
-    recurface_3 = Recurface(surface_3, (50, 60))
-
-    recurface_1.add_child(recurface_2)
-    recurface_2.add_child(recurface_3)
-
-    assert [*recurface_1.children] == [recurface_2] and [*recurface_2.children] == [recurface_3]
-
-    recurface_2.unlink()
-
-    assert [*recurface_1.children] == [recurface_3] and recurface_3.parent == recurface_1
-
-
-def test_unlink_returns_correct_rects():
-    surface_bg = Surface((800, 600))
-    surface_1 = Surface((300, 200))
-    surface_2 = Surface((100, 80))
-    surface_3 = Surface((70, 60))
-
-    recurface_1 = Recurface(surface_1, (10, 20))
-    recurface_2 = Recurface(surface_2, (30, 40))
-    recurface_3 = Recurface(surface_3, (50, 60))
-
-    recurface_1.add_child(recurface_2)
-    recurface_2.add_child(recurface_3)
-    recurface_2.move(4, 5)
-
-    recurface_2.unlink()
-    rects = recurface_1.render(surface_bg)
-
-    assert rects == [Rect(94, 125, 70, 60), Rect(10, 20, 300, 200)]
+        assert rects == [Rect(94, 125, 70, 60), Rect(10, 20, 300, 200)]
