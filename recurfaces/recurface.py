@@ -5,8 +5,6 @@ from typing import Sequence, List, Tuple, Optional
 
 
 class Recurface:
-    """A pygame framework used to organise Surfaces into a chain structure"""
-
     def __init__(self, surface: Surface, position: Optional[Sequence[int]] = None):
         self.__surface = surface  # Should hold a pygame Surface
         self.__position = list(position) if position else None  # (x, y) position to blit to in the containing Surface
