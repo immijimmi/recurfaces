@@ -107,9 +107,7 @@ Recurface.**move**(*self, x_offset: int = 0, y_offset: int = 0*)\
 Recurface.**add_update_rects**(*self, rects: Iterable[Optional[Rect]], update_position: bool = False*)\
 &nbsp;&nbsp;&nbsp;&nbsp;Stores the provided pygame rects to be returned by this recurface on the next `render()` call.\
 &nbsp;&nbsp;&nbsp;&nbsp;Used internally to handle removing child objects.\
-&nbsp;&nbsp;&nbsp;&nbsp;If `update_position` is `True`, the provided rects will be offset by `.position` before storing.
-
-*Note: If `.position` is currently set to `None` and `update_position` is `True`, this will throw a `ValueError`.*\
+&nbsp;&nbsp;&nbsp;&nbsp;If `update_position` is `True`, the provided rects will be offset by the position of `.__rect` before storing.\
 &nbsp;
 
 Recurface.**render**(*self, destination: Surface*)\

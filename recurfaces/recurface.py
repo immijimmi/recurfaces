@@ -134,20 +134,18 @@ class Recurface:
         """
         Stores the provided pygame rects to be returned by this recurface on the next render() call.
         Used internally to handle removing child objects.
-        If update_position is True, the provided rects will be offset by .position before storing.
-
-        Note: If .position is currently set to None and update_position is True, this will throw a ValueError
+        If update_position is True, the provided rects will be offset by the position of .__rect before storing.
         """
 
-        if update_position:
-            if not self.position:
-                raise ValueError("position is not currently set")
+        is_rendered = bool(self.__rect)  # If area has been rendered previously
+        if not is_rendered:
+            return
 
         for rect in rects:
             if rect:
                 if update_position:
-                    rect.x += self.x
-                    rect.y += self.y
+                    rect.x += self.__rect.x
+                    rect.y += self.__rect.y
 
                 self.__rect_additional.append(rect)
 
@@ -161,40 +159,48 @@ class Recurface:
         """
 
         result = []
-        is_rendered = bool(self.__rect)  # If surface has been rendered previously
-        is_updated = bool(self.__rect_previous)  # If surface has been changed or moved
-
-        if self.__rect_additional:  # If there are any extra areas that need updating
-            result += self.__rect_additional
-            self.__rect_additional = []
+        is_rendered = bool(self.__rect)  # If area has been rendered previously
+        is_updated = bool(self.__rect_previous)  # If area has been changed or moved
 
         if not self.position:  # If position is None, nothing should display to the screen
             if is_rendered:  # If something was previously rendered, that area of the screen needs updating to remove it
                 result.append(self.__rect_previous)
-                self.__rect_previous = None
-                self.__rect = None  # is_rendered will now be False on the next .render call
+                self._reset()
             return result
 
         surface_working = self.surface.copy()
+
+        child_rects = []
         for child in self.children:  # Render all child objects and collect returned Rects
             rects = child.render(surface_working)
 
             for rect in rects:
-                if rect:
+                if rect:  # Update rect position to account for nesting
                     rect.x += self.x
                     rect.y += self.y
 
-                    result.append(rect)
+                    child_rects.append(rect)
 
         self.__rect = destination.blit(surface_working, self.position)
 
-        if not is_rendered:  # On the first render, update the full surface
-            result.append(self.__rect)
+        # As .__rect persists between renders, only a working copy is returned so that it is not externally modified
+        rect_working = self.__rect.copy()
 
-        elif is_updated:
-            result += [self.__rect_previous, self.__rect]
-            self.__rect_previous = None
+        if not is_rendered:  # On the first render, update the full area
+            result.append(rect_working)
 
+        elif is_updated:  # If a change was made, update the full area and the previous area
+            result += [self.__rect_previous, rect_working]
+
+        else:  # Child and additional rects are only used if the full area was not updated
+            result += child_rects
+
+            if self.__rect_additional:  # If there are any extra areas that need updating
+                result += self.__rect_additional
+
+        # Only .__rect should retain its value post-render. Whether used or not, _previous and _additional are reset
+        self.__rect_previous = None
+        self.__rect_additional = []
         return result
 
     def unlink(self) -> None:
@@ -221,7 +227,7 @@ class Recurface:
 
         if forward_rects and self.parent:
             if self.parent:
-                self.parent.add_update_rects([self.__rect, *self.__rect_additional])
+                self.parent.add_update_rects([self.__rect], update_position=True)
 
         self.__rect = None
         self.__rect_previous = None

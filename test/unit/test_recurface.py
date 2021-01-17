@@ -66,14 +66,15 @@ class TestRecurface:
         res.recurface_1.add_child(res.recurface_2)
         rects = res.recurface_1.render(res.surface_bg)
 
-        truncated_rect = Rect(70, 70, 70, 40)  # Some of recurface_2's edges are outside the boundaries of its parent
-        assert rects == [truncated_rect, Rect(10, 20, 300, 200), Rect(40, 30, 100, 80)]
+        assert rects == [Rect(10, 20, 300, 200), Rect(40, 30, 100, 80)]
 
     def test_add_update_rects_are_returned_next_render(self, res):
+        res.recurface_1.render(res.surface_bg)
+
         res.recurface_1.add_update_rects([Rect(1, 2, 3, 4)])
         rects = res.recurface_1.render(res.surface_bg)
 
-        assert rects == [Rect(1, 2, 3, 4), Rect(10, 20, 300, 200)]
+        assert rects == [Rect(1, 2, 3, 4)]
 
         res.recurface_1.add_update_rects([Rect(1, 2, 3, 4)], update_position=True)
         rects = res.recurface_1.render(res.surface_bg)
@@ -81,13 +82,15 @@ class TestRecurface:
         assert rects == [Rect(11, 22, 3, 4)]
 
     def test_add_child_after_child_updated_returns_correct_rects(self, res):
+        res.recurface_1.render(res.surface_bg)
+
         res.recurface_2.render(res.surface_bg)
         res.recurface_2.position = (40, 50)
 
         res.recurface_1.add_child(res.recurface_2)  # This will reset recurface_2
         rects = res.recurface_1.render(res.surface_bg)
 
-        assert rects == [Rect(50, 70, 100, 80), Rect(10, 20, 300, 200)]
+        assert rects == [Rect(50, 70, 100, 80)]
 
     def test_remove_child_after_child_updated_returns_correct_rects(self, res):
         res.recurface_1.add_child(res.recurface_2)
@@ -110,6 +113,8 @@ class TestRecurface:
         assert [*res.recurface_1.children] == [res.recurface_3] and res.recurface_3.parent == res.recurface_1
 
     def test_unlink_returns_correct_rects(self, res):
+        res.recurface_1.render(res.surface_bg)
+
         res.recurface_1.add_child(res.recurface_2)
         res.recurface_2.add_child(res.recurface_3)
         res.recurface_2.move(4, 5)
@@ -117,4 +122,4 @@ class TestRecurface:
         res.recurface_2.unlink()
         rects = res.recurface_1.render(res.surface_bg)
 
-        assert rects == [Rect(94, 125, 70, 60), Rect(10, 20, 300, 200)]
+        assert rects == [Rect(94, 125, 70, 60)]
