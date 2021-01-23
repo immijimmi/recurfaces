@@ -1,6 +1,7 @@
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import Surface, Rect
+
 from typing import Sequence, List, Tuple, Optional
 
 
@@ -219,7 +220,7 @@ class Recurface:
 
         self._reset()
 
-    def _reset(self, forward_rects=False) -> None:
+    def _reset(self, forward_rects: bool = False) -> None:
         """
         Sets variables which hold the object's rendering details back to their default values.
         This should only be done if the parent object is being changed
