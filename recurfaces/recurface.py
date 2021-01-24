@@ -2,7 +2,7 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import Surface, Rect
 
-from typing import Sequence, List, Tuple, Optional
+from typing import Sequence, List, Tuple, Optional, FrozenSet
 
 
 class Recurface:
@@ -101,7 +101,7 @@ class Recurface:
             self.__parent.add_child(self)
 
     @property
-    def children(self) -> frozenset:
+    def children(self) -> FrozenSet["Recurface"]:
         return frozenset(self.__children)
 
     def add_child(self, child: "Recurface") -> None:
