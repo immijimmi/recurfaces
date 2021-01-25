@@ -7,18 +7,17 @@ from recurfaces import Recurface
 @pytest.fixture
 def res():
     class RecurfaceResources:
-        def __init__(self):
-            self.surface_bg = Surface((800, 600))
-            self.surface_1 = Surface((300, 200))
-            self.surface_2 = Surface((100, 80))
-            self.surface_3 = Surface((70, 60))
+        surface_bg = Surface((800, 600))
+        surface_1 = Surface((300, 200))
+        surface_2 = Surface((100, 80))
+        surface_3 = Surface((70, 60))
 
-            self.recurface_no_position = Recurface(self.surface_1)
-            self.recurface_1 = Recurface(self.surface_1, (10, 20))
-            self.recurface_2 = Recurface(self.surface_2, (30, 40))
-            self.recurface_3 = Recurface(self.surface_3, (50, 60))
+        recurface_no_position = Recurface(surface_1)
+        recurface_1 = Recurface(surface_1, (10, 20))
+        recurface_2 = Recurface(surface_2, (30, 40))
+        recurface_3 = Recurface(surface_3, (50, 60))
 
-    yield RecurfaceResources()
+    return RecurfaceResources
 
 
 class TestRecurface:
