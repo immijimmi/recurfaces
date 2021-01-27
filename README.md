@@ -20,11 +20,11 @@ clock = pygame.time.Clock()
 # Creating some recurfaces to display
 bg_surface = pygame.Surface((800, 600))
 bg_surface.fill("#FFFFFF")
-scene = Recurface(bg_surface, (0, 0))  # This will be the top-level recurface
+scene = Recurface(bg_surface, position=(0, 0))  # This will be the top-level recurface
 
 red_square_surface = pygame.Surface((64, 64))
 red_square_surface.fill("#FF0000")
-red_square = Recurface(red_square_surface, (100, 100))
+red_square = Recurface(red_square_surface, position=(100, 100))
 
 scene.add_child(red_square)
 
