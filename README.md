@@ -71,7 +71,7 @@ Recurface.**position**
 Recurface.**x**, Recurface.**y**  
 &nbsp;&nbsp;&nbsp;&nbsp;These properties access their respective indexes of `.position`.
 
-*Note: If `.position` is currently set to `None`, accessing these will throw a `ValueError`.*  
+*Note: If `.position` is currently set to `None`, accessing these will throw a ValueError.*  
 &nbsp;
 
 Recurface.**parent**  
@@ -101,7 +101,7 @@ Recurface.**move**(*self, x_offset: int = 0, y_offset: int = 0*)
 &nbsp;&nbsp;&nbsp;&nbsp;Adds the provided offset values to the recurface's current position.  
 &nbsp;&nbsp;&nbsp;&nbsp;Returns a tuple representing the updated `.position`.
 
-*Note: If `.position` is currently set to `None`, this will throw a `ValueError`.*  
+*Note: If `.position` is currently set to `None`, this will throw a ValueError.*  
 &nbsp;
 
 Recurface.**add_update_rects**(*self, rects: Iterable[Optional[Rect]], update_position: bool = False*)  
@@ -114,7 +114,7 @@ Recurface.**render**(*self, destination: Surface*)
 &nbsp;&nbsp;&nbsp;&nbsp;Draws all child surfaces to a copy of `.surface`, then draws the copy to the provided destination.  
 &nbsp;&nbsp;&nbsp;&nbsp;Returns a list of pygame rects representing updated areas of the provided destination.
 
-*Note: This function should be called on top-level (parent-less) recurfaces once per game tick, and pygame.display.update() should be passed all returned rects.*  
+*Note: This function should be called on top-level (parent-less) recurfaces once per game tick, and `pygame.display.update()` should be passed all returned rects.*  
 &nbsp;
 
 Recurface.**unlink**(*self*)  
