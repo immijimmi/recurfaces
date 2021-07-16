@@ -2,11 +2,11 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import Surface, Rect
 
-from typing import Sequence, List, Tuple, Optional, FrozenSet
+from typing import Sequence, List, Tuple, Optional, FrozenSet, Any
 
 
 class Recurface:
-    def __init__(self, surface: Surface, position: Optional[Sequence[int]] = None):
+    def __init__(self, surface: Surface, position: Optional[Sequence[int]] = None, priority: Any = None):
         self.__surface = surface  # Should hold a pygame Surface
         self.__position = list(position) if position else None  # (x, y) position to blit to in the containing Surface
 
@@ -16,6 +16,9 @@ class Recurface:
         self.__rect = None
         self.__rect_previous = None
         self.__rect_additional = []
+
+        self.__priority = priority  # Indicates the order recurfaces at the same nesting level will be displayed in
+        self.__ordered_children = tuple()
 
     @property
     def surface(self) -> Surface:
@@ -104,11 +107,31 @@ class Recurface:
     def children(self) -> FrozenSet["Recurface"]:
         return frozenset(self.__children)
 
+    @property
+    def ordered_children(self) -> Tuple["Recurface"]:
+        return self.__ordered_children
+
+    @property
+    def priority(self) -> Any:
+        return self.__priority
+
+    @priority.setter
+    def priority(self, value: Any):
+        self.__priority = value
+
+        if self.__parent:
+            self.__parent.calculate_ordered_children()
+
+    def calculate_ordered_children(self) -> None:
+        self.__ordered_children = tuple(sorted(self.__children, key=lambda recurface: recurface.priority))
+
     def add_child(self, child: "Recurface") -> None:
         if child in self.__children:
             return  # Child is already added
 
         self.__children.add(child)
+        self.calculate_ordered_children()
+
         child.parent = self
 
         child._reset()  # Extra call to reset() for redundancy
@@ -116,6 +139,8 @@ class Recurface:
     def remove_child(self, child: "Recurface") -> None:
         if child in self.__children:
             self.__children.remove(child)
+            self.calculate_ordered_children()
+
             child.parent = None
 
     def move(self, x_offset: int = 0, y_offset: int = 0) -> Tuple[int]:
@@ -172,7 +197,7 @@ class Recurface:
         surface_working = self.surface.copy()
 
         child_rects = []
-        for child in self.children:  # Render all child objects and collect returned Rects
+        for child in self.ordered_children:  # Render all child objects in the correct order and collect returned Rects
             rects = child.render(surface_working)
 
             for rect in rects:
