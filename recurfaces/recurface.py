@@ -6,8 +6,10 @@ from typing import Sequence, List, Tuple, Optional, FrozenSet, Any
 
 
 class Recurface:
-    def __init__(self, surface: Surface, position: Optional[Sequence[int]] = None, priority: Any = None):
-        self.__surface = surface  # Should hold a pygame Surface
+    def __init__(self,
+                 surface: Optional[Surface] = None, position: Optional[Sequence[int]] = None,
+                 priority: Any = None):
+        self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
         self.__position = list(position) if position else None  # (x, y) position to blit to in the containing Surface
 
         self.__parent = None
@@ -53,14 +55,14 @@ class Recurface:
     @property
     def x(self) -> int:
         if not self.__position:
-            raise ValueError("position is not currently set")
+            raise ValueError(".position is not currently set")
 
         return self.__position[0]
 
     @x.setter
     def x(self, value: int):
         if not self.__position:
-            raise ValueError("position is not currently set")
+            raise ValueError(".position is not currently set")
 
         if self.__position[0] == value:
             return  # Position is already correctly set
@@ -71,14 +73,14 @@ class Recurface:
     @property
     def y(self) -> int:
         if not self.__position:
-            raise ValueError("position is not currently set")
+            raise ValueError(".position is not currently set")
 
         return self.__position[1]
 
     @y.setter
     def y(self, value: int):
         if not self.__position:
-            raise ValueError("position is not currently set")
+            raise ValueError(".position is not currently set")
 
         if self.__position[1] == value:
             return  # Position is already correctly set
@@ -194,6 +196,8 @@ class Recurface:
                 self._reset()
             return result
 
+        if self.surface is None:
+            raise ValueError(".surface does not contain a valid pygame Surface to render")
         surface_working = self.surface.copy()
 
         child_rects = []
