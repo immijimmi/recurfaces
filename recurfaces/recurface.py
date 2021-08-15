@@ -3,6 +3,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import Surface, Rect
 
 from typing import Sequence, List, Tuple, Optional, FrozenSet, Any
+from weakref import ref
 
 
 class Recurface:
@@ -12,7 +13,7 @@ class Recurface:
         self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
         self.__position = list(position) if position else None  # (x, y) position to blit to in the containing Surface
 
-        self.__parent = None
+        self.__parent_ref = lambda: None  # Mimics a dead weakref; will be used where there is no parent object
         self.__children = set()
 
         self.__rect = None
@@ -90,20 +91,24 @@ class Recurface:
 
     @property
     def parent(self) -> Optional["Recurface"]:
-        return self.__parent
+        return self.__parent_ref()
 
     @parent.setter
     def parent(self, value: Optional["Recurface"]):
-        if self.__parent:
-            if self.__parent is value:
+        curr_parent = self.parent
+
+        if curr_parent:
+            if curr_parent is value:
                 return  # Parent is already correctly set
 
             self._reset(forward_rects=True)
-            self.__parent.remove_child(self)  # Remove from any previous parent
+            curr_parent.remove_child(self)  # Remove from any previous parent
 
-        self.__parent = value
-        if self.__parent:
-            self.__parent.add_child(self)
+        self.__parent_ref = ref(value) if value else lambda: None
+        new_parent = self.parent
+
+        if new_parent:
+            new_parent.add_child(self)
 
     @property
     def children(self) -> FrozenSet["Recurface"]:
@@ -121,8 +126,8 @@ class Recurface:
     def priority(self, value: Any):
         self.__priority = value
 
-        if self.__parent:
-            self.__parent.calculate_ordered_children()
+        if self.parent:
+            self.parent.calculate_ordered_children()
 
     def calculate_ordered_children(self) -> None:
         self.__ordered_children = tuple(sorted(self.__children, key=lambda recurface: recurface.priority))
