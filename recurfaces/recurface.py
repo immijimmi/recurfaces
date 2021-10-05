@@ -12,16 +12,15 @@ class Recurface:
                  priority: Any = None):
         self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
         self.__position = list(position) if position else None  # (x, y) position to blit to in the containing Surface
-
-        self.__parent_ref = lambda: None  # Mimics a dead weakref; will be used where there is no parent object
-        self.__children = set()
+        self.__priority = priority  # Indicates the order recurfaces at the same nesting level will be displayed in
 
         self.__rect = None
         self.__rect_previous = None
         self.__rect_additional = []
 
-        self.__priority = priority  # Indicates the order recurfaces at the same nesting level will be displayed in
+        self.__children = set()
         self.__ordered_children = tuple()
+        self.__parent_ref = lambda: None  # Mimics a dead weakref; will be used where there is no parent object
 
     @property
     def surface(self) -> Surface:
