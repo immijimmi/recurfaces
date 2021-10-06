@@ -13,9 +13,9 @@ def res():
         surface_3 = Surface((70, 60))
 
         recurface_no_position = Recurface(surface_1)
-        recurface_1 = Recurface(surface_1, (10, 20))
-        recurface_2 = Recurface(surface_2, (30, 40))
-        recurface_3 = Recurface(surface_3, (50, 60))
+        recurface_1 = Recurface(surface=surface_1, position=(10, 20))
+        recurface_2 = Recurface(surface=surface_2, position=(30, 40))
+        recurface_3 = Recurface(surface=surface_3, position=(50, 60))
 
     return RecurfaceResources
 
@@ -34,9 +34,9 @@ class TestRecurface:
     def test_move_position_after_render_returns_correct_rects(self, res):
         res.recurface_1.render(res.surface_bg)
 
-        res.recurface_1.move(15, 30)
-        res.recurface_1.x += 3
-        res.recurface_1.y += 6
+        res.recurface_1.move_render_position(15, 30)
+        res.recurface_1.x_render_position += 3
+        res.recurface_1.y_render_position += 6
         rects = res.recurface_1.render(res.surface_bg)
 
         assert rects == [Rect(10, 20, 300, 200), Rect(28, 56, 300, 200)]
@@ -44,7 +44,7 @@ class TestRecurface:
     def test_position_none_after_render_returns_correct_rects(self, res):
         res.recurface_1.render(res.surface_bg)
 
-        res.recurface_1.position = None
+        res.recurface_1.render_position = None
         rects = res.recurface_1.render(res.surface_bg)
 
         assert rects == [Rect(10, 20, 300, 200)]
@@ -61,8 +61,8 @@ class TestRecurface:
         res.recurface_1.render(res.surface_bg)
 
         res.recurface_1.surface = res.surface_2
-        res.recurface_1.position = (40, 30)
-        res.recurface_1.add_child(res.recurface_2)
+        res.recurface_1.render_position = (40, 30)
+        res.recurface_1.add_child_recurface(res.recurface_2)
         rects = res.recurface_1.render(res.surface_bg)
 
         assert rects == [Rect(10, 20, 300, 200), Rect(40, 30, 100, 80)]
@@ -84,39 +84,39 @@ class TestRecurface:
         res.recurface_1.render(res.surface_bg)
 
         res.recurface_2.render(res.surface_bg)
-        res.recurface_2.position = (40, 50)
+        res.recurface_2.render_position = (40, 50)
 
-        res.recurface_1.add_child(res.recurface_2)  # This will reset recurface_2
+        res.recurface_1.add_child_recurface(res.recurface_2)  # This will reset recurface_2
         rects = res.recurface_1.render(res.surface_bg)
 
         assert rects == [Rect(50, 70, 100, 80)]
 
     def test_remove_child_after_child_updated_returns_correct_rects(self, res):
-        res.recurface_1.add_child(res.recurface_2)
+        res.recurface_1.add_child_recurface(res.recurface_2)
         res.recurface_1.render(res.surface_bg)
 
-        res.recurface_2.position = (40, 50)
-        res.recurface_1.remove_child(res.recurface_2)
+        res.recurface_2.render_position = (40, 50)
+        res.recurface_1.remove_child_recurface(res.recurface_2)
         rects = res.recurface_1.render(res.surface_bg)
 
         assert rects == [Rect(40, 60, 100, 80)]
 
     def test_unlink_ties_children_to_parent(self, res):
-        res.recurface_1.add_child(res.recurface_2)
-        res.recurface_2.add_child(res.recurface_3)
+        res.recurface_1.add_child_recurface(res.recurface_2)
+        res.recurface_2.add_child_recurface(res.recurface_3)
 
-        assert [*res.recurface_1.children] == [res.recurface_2] and [*res.recurface_2.children] == [res.recurface_3]
+        assert [*res.recurface_1.child_recurfaces] == [res.recurface_2] and [*res.recurface_2.child_recurfaces] == [res.recurface_3]
 
         res.recurface_2.unlink()
 
-        assert [*res.recurface_1.children] == [res.recurface_3] and res.recurface_3.parent == res.recurface_1
+        assert [*res.recurface_1.child_recurfaces] == [res.recurface_3] and res.recurface_3.parent_recurface == res.recurface_1
 
     def test_unlink_returns_correct_rects(self, res):
         res.recurface_1.render(res.surface_bg)
 
-        res.recurface_1.add_child(res.recurface_2)
-        res.recurface_2.add_child(res.recurface_3)
-        res.recurface_2.move(4, 5)
+        res.recurface_1.add_child_recurface(res.recurface_2)
+        res.recurface_2.add_child_recurface(res.recurface_3)
+        res.recurface_2.move_render_position(4, 5)
 
         res.recurface_2.unlink()
         rects = res.recurface_1.render(res.surface_bg)

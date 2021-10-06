@@ -11,18 +11,18 @@ class Recurface:
             self, surface: Optional[Surface] = None, parent: Optional["Recurface"] = None,
             position: Optional[Sequence[int]] = None, priority: Any = None):
         self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
-        self.__position = list(position) if position else None  # (x, y) position to blit to in the containing Surface
-        self.__priority = priority  # Indicates the order recurfaces at the same nesting level will be displayed in
+        self.__render_position = list(position) if position else None  # (x, y) to render to in the containing Surface
+        self.__render_priority = priority  # Determines how recurfaces at the same nesting level are layered on screen
 
         self.__rect = None
         self.__rect_previous = None
         self.__rect_additional = []
 
-        self.__children = set()
-        self.__ordered_children = tuple()
+        self.__child_recurfaces = set()
+        self.__ordered_child_recurfaces = tuple()
 
-        self.__parent = None
-        self.parent = parent  # Done this way to invoke the code in .parent's setter
+        self.__parent_recurface = None
+        self.parent_recurface = parent  # Done this way to invoke the code in .parent's setter
 
     @property
     def surface(self) -> Surface:
@@ -37,124 +37,121 @@ class Recurface:
         self.__surface = value
 
     @property
-    def position(self) -> Optional[Tuple[int]]:
-        return tuple(self.__position) if self.__position else None
+    def render_position(self) -> Optional[Tuple[int]]:
+        return tuple(self.__render_position) if self.__render_position else None
 
-    @position.setter
-    def position(self, value: Optional[Sequence[int]]):
-        if self.__position is None or value is None:
-            if self.__position == value:
+    @render_position.setter
+    def render_position(self, value: Optional[Sequence[int]]):
+        if self.__render_position is None or value is None:
+            if self.__render_position == value:
                 return  # Position is already correctly set
         else:
-            if self.__position[0] == value[0] and self.__position[1] == value[1]:
+            if self.__render_position[0] == value[0] and self.__render_position[1] == value[1]:
                 return  # Position is already correctly set
 
-        if self.__position:
+        if self.__render_position:
             self.__rect_previous = self.__rect
 
-        self.__position = [value[0], value[1]] if value else None
+        self.__render_position = [value[0], value[1]] if value else None
 
     @property
-    def x(self) -> int:
-        if not self.__position:
-            raise ValueError(".position is not currently set")
+    def x_render_position(self) -> int:
+        if self.__render_position is None:
+            raise ValueError(".render_position is not currently set")
 
-        return self.__position[0]
+        return self.__render_position[0]
 
-    @x.setter
-    def x(self, value: int):
-        if not self.__position:
-            raise ValueError(".position is not currently set")
+    @x_render_position.setter
+    def x_render_position(self, value: int):
+        if self.__render_position is None:
+            raise ValueError(".render_position is not currently set")
 
-        if self.__position[0] == value:
+        if self.__render_position[0] == value:
             return  # Position is already correctly set
 
         self.__rect_previous = self.__rect
-        self.__position[0] = value
+        self.__render_position[0] = value
 
     @property
-    def y(self) -> int:
-        if not self.__position:
-            raise ValueError(".position is not currently set")
+    def y_render_position(self) -> int:
+        if self.__render_position is None:
+            raise ValueError(".render_position is not currently set")
 
-        return self.__position[1]
+        return self.__render_position[1]
 
-    @y.setter
-    def y(self, value: int):
-        if not self.__position:
-            raise ValueError(".position is not currently set")
+    @y_render_position.setter
+    def y_render_position(self, value: int):
+        if self.__render_position is None:
+            raise ValueError(".render_position is not currently set")
 
-        if self.__position[1] == value:
+        if self.__render_position[1] == value:
             return  # Position is already correctly set
 
         self.__rect_previous = self.__rect
-        self.__position[1] = value
+        self.__render_position[1] = value
 
     @property
-    def parent(self) -> Optional["Recurface"]:
-        if self.__parent is None:
+    def parent_recurface(self) -> Optional["Recurface"]:
+        if self.__parent_recurface is None:
             return None
 
-        return self.__parent()
+        return self.__parent_recurface()
 
-    @parent.setter
-    def parent(self, value: Optional["Recurface"]):
-        curr_parent = self.parent
+    @parent_recurface.setter
+    def parent_recurface(self, value: Optional["Recurface"]):
+        curr_parent = self.parent_recurface
 
         if curr_parent is not None:
             if curr_parent is value:
                 return  # Parent is already correctly set
 
-            self._reset(forward_rects=True)
-            curr_parent.remove_child(self)  # Remove from any previous parent
+            self._reset_rects(forward_rects=True)
+            curr_parent.remove_child_recurface(self)  # Remove from any previous parent
 
-        self.__parent = None if value is None else ref(value)
+        self.__parent_recurface = None if value is None else ref(value)
 
-        new_parent = self.parent
+        new_parent = self.parent_recurface
         if new_parent is not None:
-            new_parent.add_child(self)
+            new_parent.add_child_recurface(self)
 
     @property
-    def children(self) -> FrozenSet["Recurface"]:
-        return frozenset(self.__children)
+    def child_recurfaces(self) -> FrozenSet["Recurface"]:
+        return frozenset(self.__child_recurfaces)
 
     @property
-    def ordered_children(self) -> Tuple["Recurface"]:
-        return self.__ordered_children
+    def ordered_child_recurfaces(self) -> Tuple["Recurface"]:
+        return self.__ordered_child_recurfaces
 
     @property
-    def priority(self) -> Any:
-        return self.__priority
+    def render_priority(self) -> Any:
+        return self.__render_priority
 
-    @priority.setter
-    def priority(self, value: Any):
-        self.__priority = value
+    @render_priority.setter
+    def render_priority(self, value: Any):
+        self.__render_priority = value
 
-        if self.parent:
-            self.parent.calculate_ordered_children()
+        if self.parent_recurface:
+            self.parent_recurface._calculate_ordered_child_recurfaces()
 
-    def calculate_ordered_children(self) -> None:
-        self.__ordered_children = tuple(sorted(self.__children, key=lambda recurface: recurface.priority))
-
-    def add_child(self, child: "Recurface") -> None:
-        if child in self.__children:
+    def add_child_recurface(self, child: "Recurface") -> None:
+        if child in self.__child_recurfaces:
             return  # Child is already added
 
-        self.__children.add(child)
-        self.calculate_ordered_children()
+        self.__child_recurfaces.add(child)
+        self._calculate_ordered_child_recurfaces()
 
-        child.parent = self
+        child.parent_recurface = self
 
-        child._reset()  # Extra call to reset() for redundancy
+        child._reset_rects()  # Extra call to reset() for redundancy
 
-    def remove_child(self, child: "Recurface") -> None:
-        if child in self.__children:
-            self.__children.remove(child)
-            self.calculate_ordered_children()
+    def remove_child_recurface(self, child: "Recurface") -> None:
+        if child in self.__child_recurfaces:
+            self.__child_recurfaces.remove(child)
+            self._calculate_ordered_child_recurfaces()
 
-            child.parent = None
+            child.parent_recurface = None
 
-    def move(self, x_offset: int = 0, y_offset: int = 0) -> Tuple[int]:
+    def move_render_position(self, x_offset: int = 0, y_offset: int = 0) -> Tuple[int]:
         """
         Adds the provided offset values to the recurface's current position.
         Returns a tuple representing the updated .position.
@@ -162,10 +159,10 @@ class Recurface:
         Note: If .position is currently set to None, this will throw a ValueError
         """
 
-        self.x += x_offset
-        self.y += y_offset
+        self.x_render_position += x_offset
+        self.y_render_position += y_offset
 
-        return self.position
+        return self.render_position
 
     def add_update_rects(self, rects: Sequence[Optional[Rect]], update_position: bool = False) -> None:
         """
@@ -199,10 +196,10 @@ class Recurface:
         is_rendered = bool(self.__rect)  # If area has been rendered previously
         is_updated = bool(self.__rect_previous)  # If area has been changed or moved
 
-        if not self.position:  # If position is None, nothing should display to the screen
+        if not self.render_position:  # If position is None, nothing should display to the screen
             if is_rendered:  # If something was previously rendered, that area of the screen needs updating to remove it
                 result.append(self.__rect_previous)
-                self._reset()
+                self._reset_rects()
             return result
 
         if self.surface is None:
@@ -210,17 +207,17 @@ class Recurface:
         surface_working = self.surface.copy()
 
         child_rects = []
-        for child in self.ordered_children:  # Render all child objects in the correct order and collect returned Rects
+        for child in self.ordered_child_recurfaces:  # Render all child objects in the correct order and collect returned Rects
             rects = child.render(surface_working)
 
             for rect in rects:
                 if rect:  # Update rect position to account for nesting
-                    rect.x += self.x
-                    rect.y += self.y
+                    rect.x += self.x_render_position
+                    rect.y += self.y_render_position
 
                     child_rects.append(rect)
 
-        self.__rect = destination.blit(surface_working, self.position)
+        self.__rect = destination.blit(surface_working, self.render_position)
 
         # As .__rect persists between renders, only a working copy is returned so that it is not externally modified
         rect_working = self.__rect.copy()
@@ -249,25 +246,30 @@ class Recurface:
         This effectively removes the recurface from its place in the chain without leaving the chain broken
         """
 
-        parent = self.parent
-        self.parent = None
+        parent = self.parent_recurface
+        self.parent_recurface = None
 
-        for child in self.children:
-            child.move(*self.position)
-            child.parent = parent
+        for child in self.child_recurfaces:
+            child.move_render_position(*self.render_position)
+            child.parent_recurface = parent
 
-        self._reset()
+        self._reset_rects()
 
-    def _reset(self, forward_rects: bool = False) -> None:
+    def _reset_rects(self, forward_rects: bool = False) -> None:
         """
         Sets variables which hold the object's rendering details back to their default values.
         This should only be done if the parent object is being changed
         """
 
-        if forward_rects and self.parent:
-            if self.parent:
-                self.parent.add_update_rects([self.__rect], update_position=True)
+        if forward_rects and self.parent_recurface:
+            if self.parent_recurface:
+                self.parent_recurface.add_update_rects([self.__rect], update_position=True)
 
         self.__rect = None
         self.__rect_previous = None
         self.__rect_additional = []
+
+    def _calculate_ordered_child_recurfaces(self) -> None:
+        self.__ordered_child_recurfaces = tuple(
+            sorted(self.__child_recurfaces, key=lambda recurface: recurface.render_priority)
+        )
