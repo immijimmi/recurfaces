@@ -7,9 +7,9 @@ from weakref import ref
 
 
 class Recurface:
-    def __init__(self,
-                 surface: Optional[Surface] = None, position: Optional[Sequence[int]] = None,
-                 priority: Any = None):
+    def __init__(
+            self, surface: Optional[Surface] = None, parent: Optional["Recurface"] = None,
+            position: Optional[Sequence[int]] = None, priority: Any = None):
         self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
         self.__position = list(position) if position else None  # (x, y) position to blit to in the containing Surface
         self.__priority = priority  # Indicates the order recurfaces at the same nesting level will be displayed in
@@ -20,7 +20,9 @@ class Recurface:
 
         self.__children = set()
         self.__ordered_children = tuple()
-        self.__parent_ref = lambda: None  # Mimics a dead weakref; will be used where there is no parent object
+
+        self.__parent = None
+        self.parent = parent  # Done this way to invoke the code in .parent's setter
 
     @property
     def surface(self) -> Surface:
@@ -90,23 +92,26 @@ class Recurface:
 
     @property
     def parent(self) -> Optional["Recurface"]:
-        return self.__parent_ref()
+        if self.__parent is None:
+            return None
+
+        return self.__parent()
 
     @parent.setter
     def parent(self, value: Optional["Recurface"]):
         curr_parent = self.parent
 
-        if curr_parent:
+        if curr_parent is not None:
             if curr_parent is value:
                 return  # Parent is already correctly set
 
             self._reset(forward_rects=True)
             curr_parent.remove_child(self)  # Remove from any previous parent
 
-        self.__parent_ref = ref(value) if value else lambda: None
-        new_parent = self.parent
+        self.__parent = None if value is None else ref(value)
 
-        if new_parent:
+        new_parent = self.parent
+        if new_parent is not None:
             new_parent.add_child(self)
 
     @property
