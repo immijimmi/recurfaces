@@ -19,7 +19,7 @@ setup(
     download_url="https://github.com/immijimmi/recurfaces/archive/refs/tags/v0.4.0.tar.gz",
     keywords=["ui", "gui", "graphical", "user", "interface", "game"],
     install_requires=[
-        "pygame"
+        "pygame~=2.0.1"
     ],
     classifiers=[
         "Development Status :: 4 - Beta",
