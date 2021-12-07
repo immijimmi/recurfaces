@@ -234,7 +234,7 @@ class Recurface:
             if self.__rect_additional:  # If there are any extra areas that need updating
                 result += self.__rect_additional
 
-        # Only .__rect should retain its value post-render. Whether used or not, _previous and _additional are reset
+        # Only .__rect should retain its value post-render. Whether used or not, ._previous and ._additional are reset
         self.__rect_previous = None
         self.__rect_additional = []
         return result
