@@ -9,7 +9,7 @@ from weakref import ref
 class Recurface:
     def __init__(
             self, surface: Optional[Surface] = None, parent: Optional["Recurface"] = None,
-            position: Optional[Sequence[int]] = None, priority: Any = None):
+            position: Optional[Sequence[float]] = None, priority: Any = None):
         self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
         self.__render_position = list(position) if position else None  # (x, y) to render to in the containing Surface
         self.__render_priority = priority  # Determines how recurfaces at the same nesting level are layered on screen
@@ -37,11 +37,11 @@ class Recurface:
         self.__surface = value
 
     @property
-    def render_position(self) -> Optional[Tuple[int]]:
+    def render_position(self) -> Optional[Tuple[float]]:
         return tuple(self.__render_position) if self.__render_position else None
 
     @render_position.setter
-    def render_position(self, value: Optional[Sequence[int]]):
+    def render_position(self, value: Optional[Sequence[float]]):
         if self.__render_position is None or value is None:
             if self.__render_position == value:
                 return  # Position is already correctly set
@@ -55,14 +55,14 @@ class Recurface:
         self.__render_position = [value[0], value[1]] if value else None
 
     @property
-    def x_render_position(self) -> int:
+    def x_render_position(self) -> float:
         if self.__render_position is None:
             raise ValueError(".render_position is not currently set")
 
         return self.__render_position[0]
 
     @x_render_position.setter
-    def x_render_position(self, value: int):
+    def x_render_position(self, value: float):
         if self.__render_position is None:
             raise ValueError(".render_position is not currently set")
 
@@ -73,14 +73,14 @@ class Recurface:
         self.__render_position[0] = value
 
     @property
-    def y_render_position(self) -> int:
+    def y_render_position(self) -> float:
         if self.__render_position is None:
             raise ValueError(".render_position is not currently set")
 
         return self.__render_position[1]
 
     @y_render_position.setter
-    def y_render_position(self, value: int):
+    def y_render_position(self, value: float):
         if self.__render_position is None:
             raise ValueError(".render_position is not currently set")
 
@@ -151,7 +151,7 @@ class Recurface:
 
             child.parent_recurface = None
 
-    def move_render_position(self, x_offset: int = 0, y_offset: int = 0) -> Tuple[int]:
+    def move_render_position(self, x_offset: float = 0, y_offset: float = 0) -> Tuple[float]:
         """
         Adds the provided offset values to the recurface's current position.
         Returns a tuple representing the updated .position.
@@ -178,6 +178,11 @@ class Recurface:
         for rect in rects:
             if rect:
                 if update_position:
+                    """
+                    Assumes that the area each provided rect represents is offset from the *last rendered* position
+                    of this recurface's rect, not the *current* position - as would be the case if the provided rects
+                    are from now-removed child recurfaces
+                    """
                     rect.x += self.__rect.x
                     rect.y += self.__rect.y
 
@@ -258,12 +263,11 @@ class Recurface:
     def _reset_rects(self, forward_rects: bool = False) -> None:
         """
         Sets variables which hold the object's rendering details back to their default values.
-        This should only be done if the parent object is being changed
+        This should typically only be done if the parent object is being changed
         """
 
         if forward_rects and self.parent_recurface:
-            if self.parent_recurface:
-                self.parent_recurface.add_update_rects([self.__rect], update_position=True)
+            self.parent_recurface.add_update_rects([self.__rect], update_position=True)
 
         self.__rect = None
         self.__rect_previous = None
