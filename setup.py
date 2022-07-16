@@ -16,7 +16,7 @@ setup(
     author="immijimmi",
     author_email="imranhamid99@msn.com",
     url="https://github.com/immijimmi/recurfaces",
-    download_url="https://github.com/immijimmi/recurfaces/archive/refs/tags/v1.0.2.tar.gz",
+    download_url="https://github.com/immijimmi/recurfaces/archive/refs/tags/v1.0.3.tar.gz",
     keywords=["ui", "gui", "graphical", "user", "interface", "game"],
     install_requires=[
         "pygame~=2.0.1"
