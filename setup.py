@@ -8,8 +8,8 @@ setup(
     packages=[
         "recurfaces"
     ],
-    version="1.0.1",
-    license="LGPLv3",
+    version="1.0.2",
+    license="MIT",
     description="A pygame framework used to organise Surfaces into a chain structure",
     long_description_content_type="text/markdown",
     long_description=long_description,
