@@ -25,6 +25,7 @@ setup(
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
+        "Topic :: Software Development :: Libraries :: pygame",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.8",
     ],
