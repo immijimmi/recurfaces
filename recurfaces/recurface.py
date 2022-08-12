@@ -2,16 +2,16 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import Surface, Rect
 
-from typing import Sequence, List, Tuple, Optional, FrozenSet, Any
+from typing import Iterable, List, Tuple, Optional, FrozenSet, Any
 from weakref import ref
 
 
 class Recurface:
     def __init__(
             self, surface: Optional[Surface] = None, parent: Optional["Recurface"] = None,
-            position: Optional[Sequence[float]] = None, priority: Any = None):
+            position: Optional[Tuple[float, float]] = None, priority: Any = None):
         self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
-        self.__render_position = list(position) if position else None  # (x, y) to render to in the containing Surface
+        self.__render_position = list(position) if position else None  # (x, y) to render at in the containing Surface
         self.__render_priority = priority  # Determines how recurfaces at the same nesting level are layered on screen
 
         self.__rect = None
@@ -37,11 +37,11 @@ class Recurface:
         self.__surface = value
 
     @property
-    def render_position(self) -> Optional[Tuple[float]]:
+    def render_position(self) -> Optional[Tuple[float, float]]:
         return tuple(self.__render_position) if self.__render_position else None
 
     @render_position.setter
-    def render_position(self, value: Optional[Sequence[float]]):
+    def render_position(self, value: Optional[Tuple[float, float]]):
         if self.__render_position is None or value is None:
             if self.__render_position == value:
                 return  # Position is already correctly set
@@ -151,7 +151,7 @@ class Recurface:
 
             child.parent_recurface = None
 
-    def move_render_position(self, x_offset: float = 0, y_offset: float = 0) -> Tuple[float]:
+    def move_render_position(self, x_offset: float = 0, y_offset: float = 0) -> Tuple[float, float]:
         """
         Adds the provided offset values to the recurface's current position.
         Returns a tuple representing the updated .position.
@@ -164,7 +164,7 @@ class Recurface:
 
         return self.render_position
 
-    def add_update_rects(self, rects: Sequence[Optional[Rect]], update_position: bool = False) -> None:
+    def add_update_rects(self, rects: Iterable[Optional[Rect]], update_position: bool = False) -> None:
         """
         Stores the provided pygame rects to be returned by this recurface on the next render() call.
         Used internally to handle removing child objects.
