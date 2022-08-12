@@ -119,7 +119,7 @@ class Recurface:
         return frozenset(self.__child_recurfaces)
 
     @property
-    def ordered_child_recurfaces(self) -> Tuple["Recurface"]:
+    def ordered_child_recurfaces(self) -> Tuple["Recurface", ...]:
         return self.__ordered_child_recurfaces
 
     @property
