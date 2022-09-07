@@ -1,5 +1,3 @@
-import os
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import Surface, Rect
 
 from typing import Iterable, List, Tuple, Optional, FrozenSet, Any
