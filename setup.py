@@ -14,7 +14,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     author="immijimmi",
-    author_email="imranhamid99@msn.com",
+    author_email="immijimmi1@gmail.com",
     url="https://github.com/immijimmi/recurfaces",
     download_url="https://github.com/immijimmi/recurfaces/archive/refs/tags/v1.0.4.tar.gz",
     keywords=["ui", "gui", "graphical", "user", "interface", "game"],
