@@ -118,7 +118,17 @@ class Recurface:
 
     @property
     def ordered_child_recurfaces(self) -> Tuple["Recurface", ...]:
-        return self.__ordered_child_recurfaces
+        """
+        Returns the child recurfaces linked to this Recurface object, sorted by their `.render_priority`.
+        If the child recurfaces' priorities cannot be compared
+        (this will be the case if any of the recurfaces have the default priority of None),
+        the relevant TypeError will be raised
+        """
+
+        if type(self.__ordered_child_recurfaces) is TypeError:
+            raise self.__ordered_child_recurfaces
+        else:
+            return self.__ordered_child_recurfaces
 
     @property
     def render_priority(self) -> Any:
@@ -209,8 +219,13 @@ class Recurface:
             raise ValueError(".surface does not contain a valid pygame Surface to render")
         surface_working = self.surface.copy()
 
+        try:
+            child_recurfaces = self.ordered_child_recurfaces
+        except TypeError:
+            child_recurfaces = self.child_recurfaces
+
         child_rects = []
-        for child in self.ordered_child_recurfaces:  # Render all child objects in the correct order and collect returned Rects
+        for child in child_recurfaces:  # Render all child objects in the correct order and collect returned Rects
             rects = child.render(surface_working)
 
             for rect in rects:
@@ -272,6 +287,9 @@ class Recurface:
         self.__rect_additional = []
 
     def _calculate_ordered_child_recurfaces(self) -> None:
-        self.__ordered_child_recurfaces = tuple(
-            sorted(self.__child_recurfaces, key=lambda recurface: recurface.render_priority)
-        )
+        try:
+            self.__ordered_child_recurfaces = tuple(
+                sorted(self.__child_recurfaces, key=lambda recurface: recurface.render_priority)
+            )
+        except TypeError as ex:  # Unable to sort recurfaces due to non-comparable priority values
+            self.__ordered_child_recurfaces = ex
