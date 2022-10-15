@@ -17,6 +17,7 @@ class Recurface:
         self.__rect_additional = []
 
         self.__child_recurfaces = set()
+        self.__frozen_child_recurfaces = frozenset()
         self.__ordered_child_recurfaces = tuple()
 
         self.__parent_recurface = None
@@ -114,7 +115,7 @@ class Recurface:
 
     @property
     def child_recurfaces(self) -> FrozenSet["Recurface"]:
-        return frozenset(self.__child_recurfaces)
+        return self.__frozen_child_recurfaces
 
     @property
     def ordered_child_recurfaces(self) -> Tuple["Recurface", ...]:
@@ -139,14 +140,14 @@ class Recurface:
         self.__render_priority = value
 
         if self.parent_recurface:
-            self.parent_recurface._calculate_ordered_child_recurfaces()
+            self.parent_recurface._organise_child_recurfaces()
 
     def add_child_recurface(self, child: "Recurface") -> None:
         if child in self.__child_recurfaces:
             return  # Child is already added
 
         self.__child_recurfaces.add(child)
-        self._calculate_ordered_child_recurfaces()
+        self._organise_child_recurfaces()
 
         child.parent_recurface = self
 
@@ -155,7 +156,7 @@ class Recurface:
     def remove_child_recurface(self, child: "Recurface") -> None:
         if child in self.__child_recurfaces:
             self.__child_recurfaces.remove(child)
-            self._calculate_ordered_child_recurfaces()
+            self._organise_child_recurfaces()
 
             child.parent_recurface = None
 
@@ -286,7 +287,9 @@ class Recurface:
         self.__rect_previous = None
         self.__rect_additional = []
 
-    def _calculate_ordered_child_recurfaces(self) -> None:
+    def _organise_child_recurfaces(self) -> None:
+        self.__frozen_child_recurfaces = frozenset(self.__child_recurfaces)
+
         try:
             self.__ordered_child_recurfaces = tuple(
                 sorted(self.__child_recurfaces, key=lambda recurface: recurface.render_priority)
