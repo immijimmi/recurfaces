@@ -127,7 +127,7 @@ class Recurface:
         """
 
         if type(self.__ordered_child_recurfaces) is TypeError:
-            raise self.__ordered_child_recurfaces
+            raise TypeError("unable to sort child recurfaces by priority")
         else:
             return self.__ordered_child_recurfaces
 
