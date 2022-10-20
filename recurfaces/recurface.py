@@ -197,13 +197,21 @@ class Recurface:
 
                 self.__rect_additional.append(rect)
 
-    def render(self, destination: Surface) -> List[Optional[Rect]]:
+    def render(self, destination: Surface) -> List[Rect]:
+        """
+        Wrapper method for `._render()`.
+        Returns an optimised list of pygame rects representing updated areas of the provided destination.
+
+        This method should typically be called on top-level (parent-less) recurfaces once per game tick,
+        and `pygame.display.update()` should be passed the returned list of rects
+        """
+
+        return self.trimmed_rects(self._render(destination))
+
+    def _render(self, destination: Surface) -> List[Optional[Rect]]:
         """
         Draws all child surfaces to a copy of .surface, then draws the copy to the provided destination.
         Returns a list of pygame rects representing updated areas of the provided destination.
-
-        Note: This function should be called on top-level (parent-less) recurfaces once per game tick, and
-        pygame.display.update() should be passed all returned rects
         """
 
         result = []
@@ -227,7 +235,7 @@ class Recurface:
 
         child_rects = []
         for child in child_recurfaces:  # Render all child objects in the correct order and collect returned Rects
-            rects = child.render(surface_working)
+            rects = child._render(surface_working)
 
             for rect in rects:
                 if rect:  # Update rect position to account for nesting
@@ -296,3 +304,40 @@ class Recurface:
             )
         except TypeError as ex:  # Unable to sort recurfaces due to non-comparable priority values
             self.__ordered_child_recurfaces = ex
+
+    @staticmethod
+    def trimmed_rects(rects: List[Optional[Rect]]) -> List[Rect]:
+        """
+        Optimisation method applied in `.render_to_display()`.
+
+        Trims any None objects from the provided list, and any Rect objects whose bounds are entirely contained
+        within another Rect object in the list
+        """
+
+        result = []
+
+        for rect_index, rect in enumerate(rects):
+            if rect is None:
+                continue
+
+            include_rect = True
+            for other_rect_index, other_rect in enumerate(rects):
+                if other_rect is None:
+                    continue
+
+                if other_rect_index == rect_index:
+                    continue
+
+                if is_rect_inside_other_rect := (
+                    (rect.left >= other_rect.left) and
+                    (rect.right <= other_rect.right) and
+                    (rect.top >= other_rect.top) and
+                    (rect.bottom >= other_rect.bottom)
+                ):
+                    include_rect = False
+                    break
+
+            if include_rect:
+                result.append(rect)
+
+        return result
