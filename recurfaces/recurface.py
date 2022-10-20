@@ -14,7 +14,7 @@ class Recurface:
 
         self.__rect = None
         self.__rect_previous = None
-        self.__rect_additional = []
+        self.__additional_rects = []
 
         self.__child_recurfaces = set()
         self.__frozen_child_recurfaces = frozenset()
@@ -195,7 +195,7 @@ class Recurface:
                     rect.x += self.__rect.x
                     rect.y += self.__rect.y
 
-                self.__rect_additional.append(rect)
+                self.__additional_rects.append(rect)
 
     def render(self, destination: Surface) -> List[Rect]:
         """
@@ -258,12 +258,12 @@ class Recurface:
         else:  # Child and additional rects are only used if the full area was not updated
             result += child_rects
 
-            if self.__rect_additional:  # If there are any extra areas that need updating
-                result += self.__rect_additional
+            if self.__additional_rects:  # If there are any extra areas that need updating
+                result += self.__additional_rects
 
         # Only .__rect should retain its value post-render. Whether used or not, ._previous and ._additional are reset
         self.__rect_previous = None
-        self.__rect_additional = []
+        self.__additional_rects = []
         return result
 
     def unlink(self) -> None:
@@ -293,7 +293,7 @@ class Recurface:
 
         self.__rect = None
         self.__rect_previous = None
-        self.__rect_additional = []
+        self.__additional_rects = []
 
     def _organise_child_recurfaces(self) -> None:
         self.__frozen_child_recurfaces = frozenset(self.__child_recurfaces)
