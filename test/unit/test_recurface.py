@@ -70,12 +70,12 @@ class TestRecurface:
     def test_add_update_rects_are_returned_next_render(self, res):
         res.recurface_1.render(res.surface_bg)
 
-        res.recurface_1.add_update_rects([Rect(1, 2, 3, 4)])
+        res.recurface_1.add_update_rects(Rect(1, 2, 3, 4))
         rects = res.recurface_1.render(res.surface_bg)
 
         assert rects == [Rect(1, 2, 3, 4)]
 
-        res.recurface_1.add_update_rects([Rect(1, 2, 3, 4)], update_position=True)
+        res.recurface_1.add_update_rects(Rect(1, 2, 3, 4), do_update_position=True)
         rects = res.recurface_1.render(res.surface_bg)
 
         assert rects == [Rect(11, 22, 3, 4)]

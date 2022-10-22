@@ -104,7 +104,7 @@ class Recurface:
             if curr_parent is value:
                 return  # Parent is already correctly set
 
-            self._reset_rects(forward_rects=True)
+            self._reset_rects(do_forward_rects=True)
             curr_parent.remove_child_recurface(self)  # Remove from any previous parent
 
         self.__parent_recurface = None if value is None else ref(value)
@@ -151,7 +151,7 @@ class Recurface:
 
         child.parent_recurface = self
 
-        child._reset_rects()  # Extra call to reset() for redundancy
+        child._reset_rects()  # Resetting child rects here for redundancy
 
     def remove_child_recurface(self, child: "Recurface") -> None:
         if child in self.__child_recurfaces:
@@ -173,11 +173,11 @@ class Recurface:
 
         return self.render_position
 
-    def add_update_rects(self, rects: Iterable[Optional[Rect]], update_position: bool = False) -> None:
+    def add_update_rects(self, *rects: Optional[Rect], do_update_position: bool = False) -> None:
         """
         Stores the provided pygame rects to be returned by this recurface on the next render() call.
         Used internally to handle removing child objects.
-        If update_position is True, the provided rects will be offset by the position of .__rect before storing.
+        If do_update_position is True, the provided rects will be offset by the position of .__rect before storing.
         """
 
         is_rendered = bool(self.__rect)  # If area has been rendered previously
@@ -186,7 +186,7 @@ class Recurface:
 
         for rect in rects:
             if rect:
-                if update_position:
+                if do_update_position:
                     """
                     Assumes that the area each provided rect represents is offset from the *last rendered* position
                     of this recurface's rect, not the *current* position - as would be the case if the provided rects
@@ -282,14 +282,14 @@ class Recurface:
 
         self._reset_rects()
 
-    def _reset_rects(self, forward_rects: bool = False) -> None:
+    def _reset_rects(self, do_forward_rects: bool = False) -> None:
         """
         Sets variables which hold the object's rendering details back to their default values.
         This should typically only be done if the parent object is being changed
         """
 
-        if forward_rects and self.parent_recurface:
-            self.parent_recurface.add_update_rects([self.__rect], update_position=True)
+        if do_forward_rects and self.parent_recurface:
+            self.parent_recurface.add_update_rects(self.__rect, do_update_position=True)
 
         self.__rect = None
         self.__rect_previous = None
@@ -310,8 +310,9 @@ class Recurface:
         """
         Optimisation method applied in `.render_to_display()`.
 
-        Trims any None objects from the provided list, and any Rect objects whose bounds are entirely contained
-        within another Rect object in the list
+        Returns a new list containing the same rects as the provided list, but with any None objects removed
+        and any Rect objects whose bounds are entirely contained within another Rect object in the list also removed
+        (this includes removing additional identical copies of rects)
         """
 
         result = []
