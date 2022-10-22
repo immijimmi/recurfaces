@@ -317,6 +317,7 @@ class Recurface:
 
         result = []
 
+        excluded_rect_indexes = set()
         for rect_index, rect in enumerate(rects):
             if rect is None:
                 continue
@@ -329,6 +330,9 @@ class Recurface:
                 if other_rect_index == rect_index:
                     continue
 
+                if other_rect_index in excluded_rect_indexes:
+                    continue
+
                 if is_rect_outside_other_rect := (
                     (rect.left < other_rect.left) or
                     (rect.right > other_rect.right) or
@@ -337,24 +341,13 @@ class Recurface:
                 ):
                     continue
 
-                if is_rect_equal_to_other_rect := (
-                        (rect.left == other_rect.left) and
-                        (rect.right == other_rect.right) and
-                        (rect.top == other_rect.top) and
-                        (rect.bottom == other_rect.bottom)
-                ):
-                    if rect_index > other_rect_index:
-                        include_rect = False  # Only keep the first rect if both are equal
-                        break
-
-                    else:
-                        continue
-
-                else:  # If `rect` is inside `other_rect`
+                else:  # If `rect` is equal to or inside `other_rect`
                     include_rect = False
                     break
 
             if include_rect:
                 result.append(rect)
+            else:
+                excluded_rect_indexes.add(rect_index)
 
         return result

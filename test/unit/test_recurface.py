@@ -9,7 +9,7 @@ def res():
     class RecurfaceResources:
         surface_bg = Surface((800, 600))
         surface_1 = Surface((300, 200))
-        surface_2 = Surface((100, 80))
+        surface_2 = Surface((100, 300))
         surface_3 = Surface((70, 60))
 
         recurface_no_position = Recurface(surface_1)
@@ -55,7 +55,15 @@ class TestRecurface:
         res.recurface_1.surface = res.surface_2
         rects = res.recurface_1.render(res.surface_bg)
 
-        assert rects == [Rect(10, 20, 300, 200), Rect(10, 20, 100, 80)]
+        assert rects == [Rect(10, 20, 300, 200), Rect(10, 20, 100, 300)]
+
+    def test_new_contained_surface_after_render_returns_correct_rects(self, res):
+        res.recurface_1.render(res.surface_bg)
+
+        res.recurface_1.surface = res.surface_3
+        rects = res.recurface_1.render(res.surface_bg)
+
+        assert rects == [Rect(10, 20, 300, 200)]
 
     def test_new_attributes_after_render_returns_correct_rects(self, res):
         res.recurface_1.render(res.surface_bg)
@@ -65,7 +73,7 @@ class TestRecurface:
         res.recurface_1.add_child_recurface(res.recurface_2)
         rects = res.recurface_1.render(res.surface_bg)
 
-        assert rects == [Rect(10, 20, 300, 200), Rect(40, 30, 100, 80)]
+        assert rects == [Rect(10, 20, 300, 200), Rect(40, 30, 100, 300)]
 
     def test_add_update_rects_are_returned_next_render(self, res):
         res.recurface_1.render(res.surface_bg)
@@ -89,17 +97,17 @@ class TestRecurface:
         res.recurface_1.add_child_recurface(res.recurface_2)  # This will reset recurface_2
         rects = res.recurface_1.render(res.surface_bg)
 
-        assert rects == [Rect(50, 70, 100, 80)]
+        assert rects == [Rect(50, 70, 100, 150)]
 
     def test_remove_child_after_child_updated_returns_correct_rects(self, res):
         res.recurface_1.add_child_recurface(res.recurface_2)
         res.recurface_1.render(res.surface_bg)
 
-        res.recurface_2.render_position = (40, 50)
+        res.recurface_2.render_position = (40, 50)  # Should have no effect on returned rects, since this has not been rendered yet
         res.recurface_1.remove_child_recurface(res.recurface_2)
         rects = res.recurface_1.render(res.surface_bg)
 
-        assert rects == [Rect(40, 60, 100, 80)]
+        assert rects == [Rect(40, 60, 100, 160)]
 
     def test_unlink_ties_children_to_parent(self, res):
         res.recurface_1.add_child_recurface(res.recurface_2)
