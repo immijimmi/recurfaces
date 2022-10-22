@@ -328,12 +328,28 @@ class Recurface:
                 if other_rect_index == rect_index:
                     continue
 
-                if is_rect_inside_other_rect := (
-                    (rect.left >= other_rect.left) and
-                    (rect.right <= other_rect.right) and
-                    (rect.top >= other_rect.top) and
-                    (rect.bottom >= other_rect.bottom)
+                if is_rect_outside_other_rect := (
+                    (rect.left < other_rect.left) or
+                    (rect.right > other_rect.right) or
+                    (rect.top < other_rect.top) or
+                    (rect.bottom > other_rect.bottom)
                 ):
+                    continue
+
+                if is_rect_equal_to_other_rect := (
+                        (rect.left == other_rect.left) and
+                        (rect.right == other_rect.right) and
+                        (rect.top == other_rect.top) and
+                        (rect.bottom == other_rect.bottom)
+                ):
+                    if rect_index > other_rect_index:
+                        include_rect = False  # Only keep the first rect if both are equal
+                        break
+
+                    else:
+                        continue
+
+                else:  # If `rect` is inside `other_rect`
                     include_rect = False
                     break
 
