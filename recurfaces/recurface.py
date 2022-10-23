@@ -6,8 +6,8 @@ from weakref import ref
 
 class Recurface:
     def __init__(
-            self, surface: Optional[Surface] = None, parent: Optional["Recurface"] = None,
-            position: Optional[Tuple[float, float]] = None, priority: Any = None):
+            self, surface: Optional[Surface] = None, position: Optional[Tuple[float, float]] = None,
+            parent: Optional["Recurface"] = None, priority: Any = None):
         self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
         self.__render_position = list(position) if position else None  # (x, y) to render at in the containing Surface
         self.__render_priority = priority  # Determines how recurfaces at the same nesting level are layered on screen
