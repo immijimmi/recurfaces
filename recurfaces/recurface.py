@@ -59,14 +59,14 @@ class Recurface:
     @property
     def x_render_position(self) -> float:
         if self.__render_position is None:
-            raise ValueError(".render_position is not currently set")
+            raise ValueError("`.render_position` is not currently set")
 
         return self.__render_position[0]
 
     @x_render_position.setter
     def x_render_position(self, value: float):
         if self.__render_position is None:
-            raise ValueError(".render_position is not currently set")
+            raise ValueError("`.render_position` is not currently set")
 
         if self.__render_position[0] == value:
             return  # Position is already correctly set
@@ -77,14 +77,14 @@ class Recurface:
     @property
     def y_render_position(self) -> float:
         if self.__render_position is None:
-            raise ValueError(".render_position is not currently set")
+            raise ValueError("`.render_position` is not currently set")
 
         return self.__render_position[1]
 
     @y_render_position.setter
     def y_render_position(self, value: float):
         if self.__render_position is None:
-            raise ValueError(".render_position is not currently set")
+            raise ValueError("`.render_position` is not currently set")
 
         if self.__render_position[1] == value:
             return  # Position is already correctly set
@@ -244,7 +244,7 @@ class Recurface:
             return result
 
         if self.surface is None:
-            raise ValueError(".surface does not contain a valid pygame Surface to render")
+            raise ValueError("`.surface` does not contain a valid pygame Surface to render")
         surface_working = self.copy_surface()
 
         try:
