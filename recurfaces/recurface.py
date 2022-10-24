@@ -9,7 +9,6 @@ class Recurface:
             self, surface: Optional[Surface] = None, position: Optional[Tuple[float, float]] = None,
             parent: Optional["Recurface"] = None, priority: Any = None
     ):
-        self.__surface = surface  # Must hold a valid pygame Surface in order to successfully render
         self.__render_position = list(position) if position else None  # (x, y) to render at in the containing Surface
         self.__render_priority = priority  # Determines how recurfaces at the same nesting level are layered on screen
 
@@ -21,8 +20,11 @@ class Recurface:
         self.__frozen_child_recurfaces = frozenset()
         self.__ordered_child_recurfaces = tuple()
 
+        self.__surface = None  # Must hold a valid pygame Surface in order to successfully render
+        self.surface = surface  # Deliberately invokes the code in .surface's setter
+
         self.__parent_recurface = None
-        self.parent_recurface = parent  # Done this way to invoke the code in .parent's setter
+        self.parent_recurface = parent  # Deliberately invokes the code in .parent's setter
 
     @property
     def surface(self) -> Surface:
@@ -30,11 +32,11 @@ class Recurface:
 
     @surface.setter
     def surface(self, value: Surface):
-        if self.__surface is value:
+        if self.__surface == value:
             return  # Surface is already correctly set
 
-        self.__rect_previous = self.__rect
         self.__surface = value
+        self.update_surface()
 
     @property
     def render_position(self) -> Optional[Tuple[float, float]]:
@@ -50,7 +52,7 @@ class Recurface:
                 return  # Position is already correctly set
 
         if self.__render_position:
-            self.__rect_previous = self.__rect
+            self.update_surface()
 
         self.__render_position = [value[0], value[1]] if value else None
 
@@ -69,8 +71,8 @@ class Recurface:
         if self.__render_position[0] == value:
             return  # Position is already correctly set
 
-        self.__rect_previous = self.__rect
         self.__render_position[0] = value
+        self.update_surface()
 
     @property
     def y_render_position(self) -> float:
@@ -87,8 +89,8 @@ class Recurface:
         if self.__render_position[1] == value:
             return  # Position is already correctly set
 
-        self.__rect_previous = self.__rect
         self.__render_position[1] = value
+        self.update_surface()
 
     @property
     def parent_recurface(self) -> Optional["Recurface"]:
@@ -138,6 +140,9 @@ class Recurface:
 
     @render_priority.setter
     def render_priority(self, value: Any):
+        if self.__render_priority == value:
+            return  # Priority is already correctly set
+
         self.__render_priority = value
 
         if self.parent_recurface:
@@ -174,11 +179,24 @@ class Recurface:
 
         return self.render_position
 
+    def update_surface(self) -> None:
+        """
+        This method manually flags the stored surface's area to be updated on the next render.
+        It should be invoked externally whenever the stored surface has been mutated in place
+        (as opposed to replaced with a different Surface object)
+        """
+
+        self.__rect_previous = self.__rect
+
     def add_update_rects(self, *rects: Optional[Rect], do_update_position: bool = False) -> None:
         """
-        Stores the provided pygame rects to be returned by this recurface on the next render() call.
+        Stores the provided pygame rects to be returned by this recurface on the next `.render()` call.
         Used internally to handle removing child objects.
-        If do_update_position is True, the provided rects will be offset by the position of .__rect before storing.
+
+        Any rects passed into this method should be bounded within the area of this recurface's stored surface,
+        as they will only be used if not all of this recurface's surface area needs updating on the next render.
+
+        If do_update_position is True, the provided rects will be offset by the position of .__rect before storing
         """
 
         is_rendered = bool(self.__rect)  # If area has been rendered previously
@@ -190,8 +208,8 @@ class Recurface:
                 if do_update_position:
                     """
                     Assumes that the area each provided rect represents is offset from the *last rendered* position
-                    of this recurface's rect, not the *current* position - as would be the case if the provided rects
-                    are from now-removed child recurfaces
+                    of this recurface's rect, not the *current* position - as the former would be the case if
+                    the provided rects are from now-removed child recurfaces
                     """
                     rect.x += self.__rect.x
                     rect.y += self.__rect.y
@@ -212,7 +230,7 @@ class Recurface:
     def _render(self, destination: Surface) -> List[Optional[Rect]]:
         """
         Draws all child surfaces to a copy of .surface, then draws the copy to the provided destination.
-        Returns a list of pygame rects representing updated areas of the provided destination.
+        Returns a list of pygame rects representing updated areas of the provided destination
         """
 
         result = []
@@ -281,7 +299,7 @@ class Recurface:
             child.move_render_position(*self.render_position)
             child.parent_recurface = parent
 
-        self._reset_rects()
+        self._reset_rects()  # Resetting rects here for redundancy
 
     def _copy_surface(self) -> Surface:
         """
@@ -297,7 +315,7 @@ class Recurface:
     def _reset_rects(self, do_forward_rects: bool = False) -> None:
         """
         Sets variables which hold the object's rendering details back to their default values.
-        This should typically only be done if the parent object is being changed
+        This is automatically done whenever the parent object is changed
         """
 
         if do_forward_rects and self.parent_recurface:
