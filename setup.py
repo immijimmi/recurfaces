@@ -8,7 +8,7 @@ setup(
     packages=[
         "recurfaces"
     ],
-    version="2.0.0",
+    version="2.1.0",
     license="MIT",
     description="A pygame framework used to organise Surfaces into a chain structure",
     long_description_content_type="text/markdown",
@@ -16,7 +16,7 @@ setup(
     author="immijimmi",
     author_email="immijimmi1@gmail.com",
     url="https://github.com/immijimmi/recurfaces",
-    download_url="https://github.com/immijimmi/recurfaces/archive/refs/tags/v2.0.0.tar.gz",
+    download_url="https://github.com/immijimmi/recurfaces/archive/refs/tags/v2.1.0.tar.gz",
     keywords=["ui", "gui", "graphical", "user", "interface", "game"],
     install_requires=[
         "pygame~=2.0.1"
