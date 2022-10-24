@@ -245,7 +245,7 @@ class Recurface:
 
         if self.surface is None:
             raise ValueError(".surface does not contain a valid pygame Surface to render")
-        surface_working = self._copy_surface()
+        surface_working = self.copy_surface()
 
         try:
             child_recurfaces = self.ordered_child_recurfaces
@@ -301,7 +301,7 @@ class Recurface:
 
         self._reset_rects()  # Resetting rects here for redundancy
 
-    def _copy_surface(self) -> Surface:
+    def copy_surface(self) -> Surface:
         """
         Can optionally be overridden.
 
