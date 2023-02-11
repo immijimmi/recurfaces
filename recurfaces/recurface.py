@@ -39,6 +39,48 @@ class Recurface:
         self.update_surface()
 
     @property
+    def parent_recurface(self) -> Optional["Recurface"]:
+        if self.__parent_recurface is None:
+            return None
+
+        return self.__parent_recurface()
+
+    @parent_recurface.setter
+    def parent_recurface(self, value: Optional["Recurface"]):
+        curr_parent = self.parent_recurface
+
+        if curr_parent is not None:
+            if curr_parent is value:
+                return  # Parent is already correctly set
+
+            self._reset_rects(do_forward_rects=True)
+            curr_parent.remove_child_recurface(self)  # Remove from any previous parent
+
+        self.__parent_recurface = None if value is None else ref(value)
+
+        new_parent = self.parent_recurface
+        if new_parent is not None:
+            new_parent.add_child_recurface(self)
+
+    @property
+    def child_recurfaces(self) -> FrozenSet["Recurface"]:
+        return self.__frozen_child_recurfaces
+
+    @property
+    def ordered_child_recurfaces(self) -> Tuple["Recurface", ...]:
+        """
+        Returns the child recurfaces linked to this Recurface object, sorted by their `.render_priority`.
+        If the child recurfaces' priorities cannot be compared
+        (this will be the case if any of the recurfaces have the default priority of None),
+        the relevant TypeError will be raised
+        """
+
+        if type(self.__ordered_child_recurfaces) is TypeError:
+            raise TypeError("unable to sort child recurfaces by priority")
+        else:
+            return self.__ordered_child_recurfaces
+
+    @property
     def render_position(self) -> Optional[Tuple[float, float]]:
         """
         These render position values are rounded before being handed to pygame, as pygame floors float values by default
@@ -96,48 +138,6 @@ class Recurface:
 
         self.__render_position[1] = value
         self.update_surface()
-
-    @property
-    def parent_recurface(self) -> Optional["Recurface"]:
-        if self.__parent_recurface is None:
-            return None
-
-        return self.__parent_recurface()
-
-    @parent_recurface.setter
-    def parent_recurface(self, value: Optional["Recurface"]):
-        curr_parent = self.parent_recurface
-
-        if curr_parent is not None:
-            if curr_parent is value:
-                return  # Parent is already correctly set
-
-            self._reset_rects(do_forward_rects=True)
-            curr_parent.remove_child_recurface(self)  # Remove from any previous parent
-
-        self.__parent_recurface = None if value is None else ref(value)
-
-        new_parent = self.parent_recurface
-        if new_parent is not None:
-            new_parent.add_child_recurface(self)
-
-    @property
-    def child_recurfaces(self) -> FrozenSet["Recurface"]:
-        return self.__frozen_child_recurfaces
-
-    @property
-    def ordered_child_recurfaces(self) -> Tuple["Recurface", ...]:
-        """
-        Returns the child recurfaces linked to this Recurface object, sorted by their `.render_priority`.
-        If the child recurfaces' priorities cannot be compared
-        (this will be the case if any of the recurfaces have the default priority of None),
-        the relevant TypeError will be raised
-        """
-
-        if type(self.__ordered_child_recurfaces) is TypeError:
-            raise TypeError("unable to sort child recurfaces by priority")
-        else:
-            return self.__ordered_child_recurfaces
 
     @property
     def render_priority(self) -> Any:
