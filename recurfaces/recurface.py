@@ -40,6 +40,11 @@ class Recurface:
 
     @property
     def render_position(self) -> Optional[Tuple[float, float]]:
+        """
+        These render position values are rounded before being handed to pygame, as pygame floors float values by default
+        which would cause the position of rendered objects to be a pixel off in some cases
+        """
+
         return tuple(self.__render_position) if self.__render_position else None
 
     @render_position.setter
@@ -263,7 +268,13 @@ class Recurface:
 
                     child_rects.append(rect)
 
-        self.__rect = destination.blit(surface_working, self.render_position)
+        self.__rect = destination.blit(
+            surface_working,
+            (
+                round(self.x_render_position),
+                round(self.y_render_position)
+            )
+        )
 
         # As .__rect persists between renders, only a working copy is returned so that it is not externally modified
         rect_working = self.__rect.copy()
