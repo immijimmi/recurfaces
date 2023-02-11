@@ -63,6 +63,23 @@ class Recurface:
             new_parent.add_child_recurface(self)
 
     @property
+    def lineage(self) -> Tuple["Recurface", ...]:
+        """
+        Returns the full sequence of recurfaces from this Recurface object to the top-level Recurface object
+        in this particular rendering hierarchy. This does not include any 'branches' (other Recurface objects that
+        are in the rendering hierarchy, but are not directly in the chain of parent objects to this one)
+        """
+
+        result = []
+        current_obj = self
+        while current_obj:
+            result.append(current_obj)
+
+            current_obj = current_obj.parent_recurface
+
+        return tuple(result)
+
+    @property
     def child_recurfaces(self) -> FrozenSet["Recurface"]:
         return self.__frozen_child_recurfaces
 
@@ -102,6 +119,28 @@ class Recurface:
             self.update_surface()
 
         self.__render_position = [value[0], value[1]] if value else None
+
+    @property
+    def absolute_render_position(self) -> Optional[Tuple[float, float]]:
+        """
+        Returns the summed render positions of all Recurface objects that are in the direct chain of objects from
+        this one up to the top-level Recurface object. Assuming that the top-level Recurface object is rendered
+        directly to a pygame window without any further offset, this return value represents
+        this Recurface object's absolute display location on that pygame window
+        """
+
+        result = [0, 0]
+        current_obj = self
+        while current_obj:
+            if current_obj.render_position is None:  # If any object in the hierarchy has a position of None
+                return None
+
+            result[0] += current_obj.x_render_position
+            result[1] += current_obj.y_render_position
+
+            current_obj = current_obj.parent_recurface
+
+        return tuple(result)
 
     @property
     def x_render_position(self) -> float:
