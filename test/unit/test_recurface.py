@@ -16,6 +16,7 @@ def res():
         recurface_1 = Recurface(surface=surface_1, position=(10, 20))
         recurface_2 = Recurface(surface=surface_2, position=(30, 40))
         recurface_3 = Recurface(surface=surface_3, position=(50, 60))
+        recurface_no_surface = Recurface(position=(10, 20))
 
     return RecurfaceResources
 
@@ -130,3 +131,11 @@ class TestRecurface:
         rects = res.recurface_1.render(res.surface_bg)
 
         assert rects == [Rect(94, 125, 70, 60)]
+
+    def test_no_surface_on_first_render_returns_no_rects(self, res):
+        rects = res.recurface_no_surface.render(res.surface_bg)
+
+        assert rects == []
+
+    def test_copy_surface_with_no_surface_raises_valueerror(self, res):
+        assert pytest.raises(ValueError, res.recurface_no_surface.copy_surface)

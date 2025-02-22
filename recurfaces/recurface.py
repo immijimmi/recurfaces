@@ -20,18 +20,18 @@ class Recurface:
         self.__frozen_child_recurfaces = frozenset()
         self.__ordered_child_recurfaces = tuple()
 
-        self.__surface = None  # Must hold a valid pygame Surface in order to successfully render
+        self.__surface = None
         self.surface = surface  # Deliberately invokes the code in .surface's setter
 
         self.__parent_recurface = None
         self.parent_recurface = parent  # Deliberately invokes the code in .parent's setter
 
     @property
-    def surface(self) -> Surface:
+    def surface(self) -> Optional[Surface]:
         return self.__surface
 
     @surface.setter
-    def surface(self, value: Surface):
+    def surface(self, value: Optional[Surface]):
         if self.__surface == value:
             return  # Surface is already correctly set
 
@@ -281,14 +281,13 @@ class Recurface:
         is_rendered = bool(self.__rect)  # If area has been rendered previously
         is_updated = bool(self.__rect_previous)  # If area has been changed or moved
 
-        if not self.render_position:  # If position is None, nothing should display to the screen
+        # If either the stored surface or current position is None, nothing should display to the screen
+        if (self.surface is None) or (self.render_position is None):
             if is_rendered:  # If something was previously rendered, that area of the screen needs updating to remove it
                 result.append(self.__rect_previous)
                 self._reset_rects()
             return result
 
-        if self.surface is None:
-            raise ValueError("`.surface` does not contain a valid pygame Surface to render")
         surface_working = self.copy_surface()
 
         try:
@@ -352,12 +351,20 @@ class Recurface:
         self._reset_rects()  # Resetting rects here for redundancy
 
     def copy_surface(self) -> Surface:
+        if self.surface is None:
+            raise ValueError("`.surface` does not contain a valid pygame Surface to copy")
+
+        return self._copy_surface()
+
+    def _copy_surface(self) -> Surface:
         """
         Can optionally be overridden.
 
-        Generates a copy of this Recurface object's stored Surface. Uses the standard `Surface.copy()` method
-        provided by pygame by default, but if there is a less resource-intensive process to do so for
-        any particular subclass then that process may be applied by overriding this method
+        Generates a copy of this Recurface object's stored Surface, using the standard `Surface.copy()` method
+        provided by pygame.
+
+        For any subclasses which can implement a less resource-intensive method of copying their stored Surfaces,
+        it is recommended to override this method to do so
         """
 
         return self.surface.copy()
