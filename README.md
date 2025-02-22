@@ -60,12 +60,13 @@ while True:
 
 Recurface.**surface**  
 &nbsp;&nbsp;&nbsp;&nbsp;Returns a reference to the recurface's stored surface.  
-&nbsp;&nbsp;&nbsp;&nbsp;This surface does not get altered by Recurface - a working copy of it is made on each render.  
+&nbsp;&nbsp;&nbsp;&nbsp;This surface is not modified by Recurface at any time - a working copy of it is made on each render.  
+&nbsp;&nbsp;&nbsp;&nbsp;Can be set to `None` in order to display nothing.  
 &nbsp;  
 
 Recurface.**render_position**  
 &nbsp;&nbsp;&nbsp;&nbsp;Returns a tuple of the surface's display position within its container.  
-&nbsp;&nbsp;&nbsp;&nbsp;This can be set to `None` in order to stop displaying the surface entirely.  
+&nbsp;&nbsp;&nbsp;&nbsp;Can be set to `None` in order to display nothing.  
 &nbsp;
 
 Recurface.**x_render_position**, Recurface.**y_render_position**  
