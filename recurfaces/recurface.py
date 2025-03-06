@@ -28,6 +28,12 @@ class Recurface:
 
     @property
     def surface(self) -> Optional[Surface]:
+        """
+        Whenever the surface stored by this property is mutated between frames,
+        `.update_surface()` must be invoked to flag the surface's respective on-screen render location
+        to be updated on the next render
+        """
+
         return self.__surface
 
     @surface.setter
@@ -226,8 +232,9 @@ class Recurface:
     def update_surface(self) -> None:
         """
         This method manually flags the stored surface's area to be updated on the next render.
-        It should be invoked externally whenever the stored surface has been mutated in place
-        (as opposed to replaced with a different Surface object)
+        It should be invoked externally whenever the stored surface has been, or will be, mutated
+        since the previous render
+        (this is unnecessary if it has been replaced with a different Surface object entirely)
         """
 
         self.__rect_previous = self.__rect
