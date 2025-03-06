@@ -288,7 +288,7 @@ class Recurface:
                 self._reset_rects()
             return result
 
-        surface_working = self.copy_surface()
+        surface_working = self.generate_surface_copy()
 
         try:
             child_recurfaces = self.ordered_child_recurfaces
@@ -350,22 +350,19 @@ class Recurface:
 
         self._reset_rects()  # Resetting rects here for redundancy
 
-    def copy_surface(self) -> Surface:
-        if self.surface is None:
-            raise ValueError("`.surface` does not contain a valid pygame Surface to copy")
-
-        return self._copy_surface()
-
-    def _copy_surface(self) -> Surface:
+    def generate_surface_copy(self) -> Surface:
         """
         Can optionally be overridden.
 
-        Generates a copy of this Recurface object's stored Surface, using the standard `Surface.copy()` method
-        provided by pygame.
+        Generates a copy of this Recurface object's Surface, or raises an error if unable to do so.
+        By default, this uses the standard `Surface.copy()` method provided by pygame.
 
-        For any subclasses which can implement a less resource-intensive method of copying their stored Surfaces,
-        it is recommended to override this method to do so
+        For any subclasses which can implement a less resource-intensive method to generate a copy
+        of their Surface, it is recommended to override this method to do so
         """
+
+        if self.surface is None:
+            raise ValueError("`.surface` does not contain a valid pygame Surface to copy")
 
         return self.surface.copy()
 
