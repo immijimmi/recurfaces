@@ -138,4 +138,4 @@ class TestRecurface:
         assert rects == []
 
     def test_copy_surface_with_no_surface_raises_valueerror(self, res):
-        assert pytest.raises(ValueError, res.recurface_no_surface.copy_surface)
+        assert pytest.raises(ValueError, res.recurface_no_surface.generate_surface_copy)
