@@ -27,12 +27,12 @@ class Recurface:
         # Should only ever contain rects in a top-level recurface. Stores extra areas in the destination to be updated
         self.__top_level_changed_rects: list[Rect] = []
 
-        # Attributes which facilitate optimisation
-
         # Child recurfaces are stored multiple ways for optimisation
         self.__child_recurfaces = set()
         self.__frozen_child_recurfaces = frozenset()
         self.__ordered_child_recurfaces = tuple()
+
+        # Optimisation attributes
 
         # Stores the previously generated working surface, unless a change invalidates it
         self.__cached_surface = None
