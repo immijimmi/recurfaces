@@ -125,22 +125,18 @@ class Recurface:
         return tuple(result)
 
     @property
-    def child_recurfaces(self) -> FrozenSet["Recurface"]:
-        return self.__frozen_child_recurfaces
-
-    @property
-    def ordered_child_recurfaces(self) -> tuple["Recurface", ...]:
+    def child_recurfaces(self) -> Union[tuple["Recurface", ...], FrozenSet["Recurface"]]:
         """
-        Returns the child recurfaces stored by this object, sorted by render priority.
-        If the render priorities of these child recurfaces cannot be compared
+        Returns the child recurfaces stored by this object, as a tuple in (ascending) order of
+        render priority (if possible). If the render priorities of these child recurfaces cannot be compared
         (this will be the case if any of the recurfaces have the default priority of None, for example),
-        a TypeError will be raised instead
+        the child recurfaces will instead be returned as a frozenset (unordered)
         """
 
-        if not self.are_child_recurfaces_ordered:
-            raise TypeError("unable to sort child recurfaces by priority")
-        else:
+        if self.are_child_recurfaces_ordered:
             return self.__ordered_child_recurfaces
+        else:
+            return self.__frozen_child_recurfaces
 
     @property
     def are_child_recurfaces_ordered(self) -> bool:
@@ -423,13 +419,8 @@ class Recurface:
             else:  # A fresh surface must be made
                 working_surface = self.generate_surface_copy()
 
-                try:
-                    child_recurfaces = self.ordered_child_recurfaces
-                except TypeError:
-                    child_recurfaces = self.child_recurfaces
-
                 # Render all child recurfaces onto the working surface, in the correct order
-                for child in child_recurfaces:
+                for child in self.child_recurfaces:
                     child_rects = child._render(working_surface)
 
                     # Child rects are only needed if the full area of this recurface will not be updated
@@ -461,13 +452,8 @@ class Recurface:
                 coords_offset[1] + self.y_render_coord
             )
 
-            try:
-                child_recurfaces = self.ordered_child_recurfaces
-            except TypeError:
-                child_recurfaces = self.child_recurfaces
-
             # Render all child recurfaces onto the destination, in the correct order
-            for child in child_recurfaces:
+            for child in self.child_recurfaces:
                 rects = child._render(destination, coords_offset=new_coords_offset)
                 for rect in rects:
                     result.append(rect)
