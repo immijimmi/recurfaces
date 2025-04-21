@@ -83,7 +83,7 @@ class Recurface:
             return
 
         if old_parent is not None:
-            old_parent._frontload_update(self._reset_rects())
+            old_parent._frontload_update_rects(self._reset_rects())
             self._flag_cached_surfaces(do_clear_self=False)
 
             self.__parent_recurface = None
@@ -98,7 +98,7 @@ class Recurface:
 
         else:  # If this recurface was previously top-level
             # Assumes that the new parent will render to the same destination as this recurface did
-            value._top_level_update((*self._reset_rects(), *self.__top_level_changed_rects))
+            value._add_top_level_update_rects((*self._reset_rects(), *self.__top_level_changed_rects))
             self.__top_level_changed_rects = []
 
         if value is not None:
@@ -472,7 +472,7 @@ class Recurface:
             self.__has_rect_changed = True
         else:
             for child in self.child_recurfaces:
-                self._frontload_update(child._reset_rects())
+                self._frontload_update_rects(child._reset_rects())
 
     def _flag_cached_surfaces(self, do_clear_self: bool = False) -> None:
         """
@@ -529,7 +529,7 @@ class Recurface:
 
         return result
 
-    def _frontload_update(self, rects: Iterable[Rect]) -> None:
+    def _frontload_update_rects(self, rects: Iterable[Rect]) -> None:
         """
         Stores the provided rects inside the first recurface in this object's ancestry (starting from this one)
         which is rendered; these rects are assumed to represent subsections of that recurface's rendered surface
@@ -543,7 +543,7 @@ class Recurface:
             return
 
         if self.parent_recurface and (not self.is_rendered):
-            return self.parent_recurface._frontload_update(rects)
+            return self.parent_recurface._frontload_update_rects(rects)
 
         if self.is_rendered:
             # Add this object's render coords to the provided rects
@@ -556,7 +556,7 @@ class Recurface:
             # As this object is not part of the current render hierarchy, its offset need not be applied to the rects
             self.__top_level_changed_rects += list(rects)
 
-    def _top_level_update(self, rects: Iterable[Rect]) -> None:
+    def _add_top_level_update_rects(self, rects: Iterable[Rect]) -> None:
         """
         Stores the provided rects inside the top-level recurface in this chain, where they will be used
         next frame to update their respective areas on the outer destination.
@@ -569,7 +569,7 @@ class Recurface:
             return
 
         if self.parent_recurface:
-            return self.parent_recurface._top_level_update(rects)
+            return self.parent_recurface._add_top_level_update_rects(rects)
 
         self.__top_level_changed_rects += list(rects)
 
