@@ -9,7 +9,8 @@ from functools import partial
 class Recurface:
     def __init__(
             self, surface: Optional[Surface] = None, position: Optional[tuple[float, float]] = None,
-            parent: Optional["Recurface"] = None, priority: Any = None, do_render: bool = True
+            parent: Optional["Recurface"] = None, priority: Any = None, do_render: bool = True,
+            before_render: Optional[Callable[["Recurface"], None]] = None
     ):
         self.__surface = surface
         self.__render_position = list(position) if position else None
@@ -41,8 +42,10 @@ class Recurface:
         # Used when determining whether to reset cached surfaces
         self.__can_render_previous = self._can_render
 
+        self.__before_render = None
+        self.before_render = before_render  # Done this way to deliberately invoke setter code
         self.__parent_recurface = None
-        self.parent_recurface = parent  # Done this way to deliberately invoke the code in .parent's setter
+        self.parent_recurface = parent  # Done this way to deliberately invoke setter code
 
     @property
     def surface(self) -> Optional[Surface]:
@@ -273,6 +276,28 @@ class Recurface:
         self._flag_cached_surfaces(do_clear_self=False)
 
     @property
+    def before_render(self) -> Callable:
+        """
+        Lifecycle method which is called automatically at the top of .render()
+        """
+
+        return self.__before_render
+
+    @before_render.setter
+    def before_render(self, value: Callable[["Recurface"], None]):
+        if value is None:
+            value = (lambda recurface: None)
+
+        def before_render(do_call_children: bool = True) -> None:
+            value(self)
+
+            if do_call_children:
+                for child in self.child_recurfaces:
+                    child.before_render(do_call_children=True)
+
+        self.__before_render = before_render
+
+    @property
     def is_rendered(self) -> bool:
         return bool(self.__rect)
 
@@ -371,6 +396,8 @@ class Recurface:
         This method should typically be called once per frame, on a single top-level recurface per external destination,
         and the returned rects used to update that destination
         """
+
+        self.before_render(do_call_children=True)
 
         result = self.__top_level_changed_rects
         self.__top_level_changed_rects = []
