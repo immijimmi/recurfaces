@@ -10,12 +10,14 @@ class Recurface:
     def __init__(
             self, surface: Optional[Surface] = None, position: Optional[tuple[float, float]] = None,
             parent: Optional["Recurface"] = None, priority: Any = None, do_render: bool = True,
-            before_render: Optional[Callable[["Recurface"], None]] = None
+            before_render: Optional[Callable[["Recurface"], None]] = None,
+            post_processors: Optional[Iterable[Callable[[Surface, "Recurface"], Surface]]] = None
     ):
         self.__surface = surface
-        self.__render_position = list(position) if position else None
+        self.__render_position = [position[0], position[1]] if position else None
         self.__render_priority = priority
         self.__do_render = do_render
+        self.__post_processors = list(post_processors) if post_processors else []
 
         # Attributes which hold the object's render state
 
@@ -298,7 +300,30 @@ class Recurface:
         self.__before_render = before_render
 
     @property
-    def is_rendered(self) -> bool:
+    def post_processors(self) -> tuple[Callable[[Surface, "Recurface"], Surface], ...]:
+        return tuple(self.__post_processors)
+
+    @post_processors.setter
+    def post_processors(self, value: Optional[Iterable[Callable[[Surface, "Recurface"], Surface]]]):
+        if (not value) and (not self.__post_processors):
+            return  # Already set to the correct value
+        if value is not None:
+            value = list(value)
+            if value == self.__post_processors:
+                return  # Already set to the correct value
+
+        self.__post_processors = value
+
+        """
+        Changes to the post-processors are handled only if this recurface has a rendered surface, since they are only
+        applied at all if this recurface has its own stored surface
+        """
+        if self.is_surface_rendered:
+            self._flag_rects()
+            self._flag_cached_surfaces(do_clear_self=False)
+
+    @property
+    def is_surface_rendered(self) -> bool:
         return bool(self.__rect)
 
     @property
@@ -402,11 +427,15 @@ class Recurface:
         result = self.__top_level_changed_rects
         self.__top_level_changed_rects = []
 
-        result += self._render(destination)
+        # A data store which is accessible to the entire chain for this render, to minimise passing data along manually
+        stack_data = {
+            "cache_blockers": set()
+        }
+        result += self._render(destination, stack_data=stack_data)
 
         return self.trimmed_rects(result)
 
-    def _render(self, destination: Surface, coords_offset: tuple[int, int] = (0, 0)) -> list[Rect]:
+    def _render(self, destination: Surface, stack_data: dict, coords_offset: tuple[int, int] = (0, 0)) -> list[Rect]:
         """
         Responsible for drawing copies of all stored surfaces in this recurface chain to the provided destination,
         at the appropriate locations and in the appropriate order.
@@ -415,15 +444,15 @@ class Recurface:
 
         result = []
 
-        # Helper variable used in rendering
+        # Helper variable used in rendering - must be calculated before attributes are reset
         is_fully_updated = False
         if self.__has_rect_changed:
             is_fully_updated = True
-        elif (not self.is_rendered) and self.surface:
+        elif (not self.is_surface_rendered) and self.surface:
             is_fully_updated = True
 
         # Adding rects for any areas which have changed since the last frame
-        if self.is_rendered:
+        if self.is_surface_rendered:
             if self.__has_rect_changed:
                 result.append(self.__rect)
             elif self.__changed_sub_rects:
@@ -440,15 +469,23 @@ class Recurface:
 
         # Rendering
         if self.surface:  # This recurface must paste a surface onto the destination
+            has_post_processors = bool(self.post_processors)
+
             if self.__cached_surface:  # A previously made surface is still stored for re-use
                 working_surface = self.__cached_surface
+
+                if has_post_processors:
+                    # Necessary to make a copy here to prevent the cached surface being modified
+                    working_surface = working_surface.copy()
 
             else:  # A fresh surface must be made
                 working_surface = self.generate_surface_copy()
 
+                cache_blockers_len_before = len(stack_data["cache_blockers"])
+
                 # Render all child recurfaces onto the working surface, in the correct order
                 for child in self.child_recurfaces:
-                    child_rects = child._render(working_surface)
+                    child_rects = child._render(working_surface, stack_data=stack_data)
 
                     # Child rects are only needed if the full area of this recurface will not be updated
                     if not is_fully_updated:
@@ -457,8 +494,28 @@ class Recurface:
                             child_rect.y += self.y_render_coord
                             result.append(child_rect)
 
-            # Set the cached surface afresh
-            self.__cached_surface = working_surface
+                cache_blockers_len_after = len(stack_data["cache_blockers"])
+
+                # Only cache this working surface if none of the child recurfaces are blockers
+                if cache_blockers_len_before == cache_blockers_len_after:
+                    self.__cached_surface = working_surface
+
+                    if has_post_processors:
+                        # Necessary to make a copy here to prevent the cached surface being modified
+                        working_surface = working_surface.copy()
+
+            if has_post_processors:
+                """
+                If a recurface applies post-processors, it is assumed that the final working surface it generates will
+                change each render (as these processors may modify the surface differently each time they are applied);
+                As such, its render location is flagged as changed immediately, and caching is blocked for any parents
+                which apply this working surface onto their own surfaces
+                """
+                self.__has_rect_changed = True
+                stack_data["cache_blockers"].add(self)
+
+                for processor in self.post_processors:
+                    working_surface = processor(working_surface, self)
 
             # Apply the surface to its destination
             self.__rect = destination.blit(
@@ -495,13 +552,13 @@ class Recurface:
         This method manually flags the area covered by this recurface and its children to be updated on the next render
         """
 
-        if self.is_rendered:
+        if self.is_surface_rendered:
             self.__has_rect_changed = True
         else:
             for child in self.child_recurfaces:
                 self._frontload_update_rects(child._reset_rects())
 
-    def _flag_cached_surfaces(self, do_clear_self: bool = False) -> None:
+    def _flag_cached_surfaces(self, do_clear_self: bool) -> None:
         """
         This method handles the clearing of cached surfaces which have been invalidated due to changes to the state of
         this recurface or one of its descendants
@@ -535,9 +592,9 @@ class Recurface:
 
         result = []
 
-        if self.is_rendered:
+        if self.is_surface_rendered:
             """
-            If this recurface is rendered, it is only necessary to return `.__rect` from this method
+            If this recurface's surface is rendered, it is only necessary to return `.__rect` from this method
             as that area will cover all child recurfaces
             """
             result.append(self.__rect)
@@ -545,7 +602,7 @@ class Recurface:
         for child in self.child_recurfaces:
             child_rects = child._reset_rects()
 
-            if not self.is_rendered:
+            if not self.is_surface_rendered:
                 result += child_rects
 
         self.__rect = None
@@ -559,8 +616,8 @@ class Recurface:
     def _frontload_update_rects(self, rects: Iterable[Rect]) -> None:
         """
         Stores the provided rects inside the first recurface in this object's ancestry (starting from this one)
-        which is rendered; these rects are assumed to represent subsections of that recurface's rendered surface
-        to be updated next frame.
+        which has a rendered surface; these rects are assumed to represent subsections of that surface to be updated
+        next frame.
 
         If there are no rendered recurfaces in this object's ancestry, the top-level recurface stores these rects
         separately, to be returned as separate areas of the outer destination which must be updated next frame
@@ -569,10 +626,10 @@ class Recurface:
         if not rects:  # If there are no rects, nothing needs doing
             return
 
-        if self.parent_recurface and (not self.is_rendered):
+        if self.parent_recurface and (not self.is_surface_rendered):
             return self.parent_recurface._frontload_update_rects(rects)
 
-        if self.is_rendered:
+        if self.is_surface_rendered:
             # Add this object's render coords to the provided rects
             for rect in rects:
                 rect.x += self.x_render_coord
