@@ -3,7 +3,6 @@ from pygame import Surface, Rect
 from typing import Optional, FrozenSet, Any, Callable, Iterable, Union
 from weakref import ref
 from math import ceil
-from functools import partial
 
 
 class Recurface:
