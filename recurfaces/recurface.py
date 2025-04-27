@@ -56,7 +56,7 @@ class Recurface:
         this object's surface.
 
         If this stored surface is mutated externally between frames (rather than replaced with a different surface,
-        for example) .flag_update() must be invoked, to flag the previous render location to be updated on the
+        for example) .flag_update() ##### must be invoked, to flag the previous render location to be updated on the
         next render
         """
 
@@ -279,7 +279,7 @@ class Recurface:
     @property
     def before_render(self) -> Callable:
         """
-        Lifecycle method which is called automatically at the top of .render()
+        Lifecycle method to be used as desired, which is called automatically at the top of .render()
         """
 
         return self.__before_render
@@ -300,6 +300,16 @@ class Recurface:
 
     @property
     def post_processors(self) -> tuple[Callable[[Surface, "Recurface"], Surface], ...]:
+        """
+        A list of callbacks which are passed the working surface during rendering, and may edit it freely
+        before it is applied to the destination.
+
+        This can be used to apply effects such as dynamic filters to surfaces,
+        but is inherently performance-heavy to use, as the presence of a post-processor on a recurface disables the
+        surface caching system for any surfaces it is able to cause modifications to during rendering
+        (typically the entire branch of surfaces that recurface is a part of)
+        """
+
         return tuple(self.__post_processors)
 
     @post_processors.setter
@@ -397,7 +407,7 @@ class Recurface:
 
     def unlink(self) -> None:
         """
-        Detaches the recurface from its parent and children.
+        Detaches this recurface from its parent and children.
         Children then have their positions updated to account for the removal of this recurface's offset,
         and are added directly to the erstwhile parent (if there is one).
         This effectively extracts the recurface from its chain, leaving everything else in place
@@ -414,7 +424,7 @@ class Recurface:
 
     def render(self, destination: Surface) -> list[Rect]:
         """
-        Wrapper method for `._render()`.
+        Entry point for the rendering process.
         Returns an optimised list of pygame rects representing updated areas of the provided destination.
 
         This method should typically be called once per frame, on a single top-level recurface per external destination,
@@ -645,7 +655,7 @@ class Recurface:
         next frame to update their respective areas on the outer destination.
 
         The provided rects are not assumed to be subsections of this chain's covered area, and therefore
-        can represent areas on the destination which are entirely separate from this chain.
+        can represent areas on the destination which are entirely separate from this chain
         """
 
         if not rects:  # If there are no rects, nothing needs doing
@@ -669,7 +679,7 @@ class Recurface:
     @staticmethod
     def trimmed_rects(rects: Iterable[Rect]) -> list[Rect]:
         """
-        Optimisation method, applied just before rects are returned from the top-level recurface.
+        Optimisation method, applied just before rects are returned from the top-level recurface's .render() method.
 
         Returns a new list containing only those rects whose bounds are not entirely contained within the bounds of
         another rect present in the list
