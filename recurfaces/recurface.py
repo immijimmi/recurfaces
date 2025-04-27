@@ -431,6 +431,9 @@ class Recurface:
         and the returned rects used to update that destination
         """
 
+        if self.parent_recurface:
+            raise RuntimeError("this method should only be called on a recurface which has no parent recurface")
+
         self.before_render(do_call_children=True)
 
         result = self.__top_level_changed_rects
