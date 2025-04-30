@@ -606,15 +606,16 @@ class Recurface:
 
         if self.is_surface_rendered:
             """
-            If this recurface's surface is rendered, it is only necessary to return `.__rect` from this method
-            as that area will cover all child recurfaces
+            If this recurface's surface is rendered when it is reset, its child recurfaces do not also need resetting,
+            as their surface area is fully contained and therefore represented by it.
+
+            If subsequent changes are made before the next render which would alter this relationship with the
+            child recurfaces, those changes are handled such that the child recurfaces get reset at that time
             """
             result.append(self.__rect)
-
-        for child in self.child_recurfaces:
-            child_rects = child._reset_rects()
-
-            if not self.is_surface_rendered:
+        else:
+            for child in self.child_recurfaces:
+                child_rects = child._reset_rects()
                 result += child_rects
 
         self.__rect = None
