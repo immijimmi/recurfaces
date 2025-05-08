@@ -350,6 +350,26 @@ class Recurface:
 
         return True
 
+    def flag_destination(self):
+        """
+        Helper method. Should be externally invoked on a top-level recurface whenever its render destination has
+        changed, or has been modified by something else, since the last render
+        """
+
+        if self.parent_recurface:
+            raise RuntimeError("this method should only be called on a recurface which has no parent recurface")
+
+        self._flag_rects()
+
+    def flag_surface(self):
+        """
+        Helper method. Should be externally invoked whenever this recurface's stored surface has been modified
+        without being replaced
+        """
+
+        self._flag_rects()
+        self._flag_cached_surfaces(do_clear_self=True)
+
     def generate_surface_copy(self) -> Surface:
         """
         Can optionally be overridden.
