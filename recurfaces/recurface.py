@@ -570,7 +570,7 @@ class Recurface:
 
             # Render all child recurfaces onto the destination, in the correct order
             for child in self.child_recurfaces:
-                rects = child._render(destination, coords_offset=new_coords_offset)
+                rects = child._render(destination, stack_data=stack_data, coords_offset=new_coords_offset)
                 for rect in rects:
                     result.append(rect)
 
