@@ -324,8 +324,9 @@ class Recurface:
         self.__post_processors = value
 
         """
-        Changes to the post-processors are handled only if this recurface has a rendered surface, since they are only
-        applied at all if this recurface has its own stored surface
+        Changes to the post-processors are managed as below only if this recurface has a rendered surface, since
+        they are only applied at all if this recurface has its own stored surface (whereas other properties must take
+        child recurfaces into account)
         """
         if self.is_surface_rendered:
             self._flag_rects()
