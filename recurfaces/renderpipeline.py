@@ -28,7 +28,7 @@ class PipelineFilter:
     def is_deterministic(self) -> bool:
         """
         This attribute should be set to a value which indicates whether the stored filter function will
-        modify its inputs predictably each time it is called; If, when given the same arguments, it always returns
+        process its inputs identically each time it is called; If, when given the same arguments, it always returns
         the same output values, it is considered deterministic for the purposes of this class.
 
         This distinction is necessary to determine whether the filter's outputs can be cached or not
