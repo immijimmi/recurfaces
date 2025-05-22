@@ -4,19 +4,22 @@ from typing import Optional, FrozenSet, Any, Callable, Iterable, Union
 from weakref import ref
 from math import ceil
 
+from .renderpipeline import PipelineFlag, PipelineFilter
+
 
 class Recurface:
     def __init__(
             self, surface: Optional[Surface] = None, position: Optional[tuple[float, float]] = None,
             parent: Optional["Recurface"] = None, priority: Any = None, do_render: bool = True,
             before_render: Optional[Callable[["Recurface"], None]] = None,
-            post_processors: Optional[Iterable[Callable[[Surface, "Recurface"], Surface]]] = None
+            render_pipeline: Iterable[Union[PipelineFlag, PipelineFilter]] = (
+                    PipelineFlag.APPLY_CHILDREN, PipelineFlag.CACHE_SURFACE
+            )
     ):
         self.__surface = surface
         self.__render_position = [position[0], position[1]] if position else None
         self.__render_priority = priority
         self.__do_render = do_render
-        self.__post_processors = list(post_processors) if post_processors else []
 
         # Attributes which hold the object's render state
 
@@ -36,13 +39,15 @@ class Recurface:
 
         # Optimisation attributes
 
-        # Stores the previously generated working surface, unless a change invalidates it
-        self.__cached_surface = None
+        # Stores previously generated working surfaces at the render pipeline's cache points
+        self.__cached_surfaces = []
         # Tracks whether a reset has occurred since the previous render
         self.__is_reset: bool = True
         # Used when determining whether to reset cached surfaces
         self.__can_render_previous = self._can_render
 
+        self.__render_pipeline = []
+        self.render_pipeline = render_pipeline
         self.__before_render = None
         self.before_render = before_render  # Done this way to deliberately invoke setter code
         self.__parent_recurface = None
@@ -56,7 +61,7 @@ class Recurface:
         this object's surface.
 
         If this stored surface is mutated externally between frames (rather than replaced with a different surface,
-        for example) .flag_update() ##### must be invoked, to flag the previous render location to be updated on the
+        for example) .flag_surface() must be invoked, to flag the previous render location to be updated on the
         next render
         """
 
@@ -88,17 +93,10 @@ class Recurface:
 
         if old_parent is not None:
             old_parent._frontload_update_rects(self._reset_rects())
-            self._flag_cached_surfaces(do_clear_self=False)
+            old_parent._flag_cached_surfaces(do_clear_self=False)
 
             self.__parent_recurface = None
             old_parent.remove_child_recurface(self)
-            """
-            Note: It is unnecessary to call `old_parent._flag_cached_surfaces(do_clear_self=False)` here to cover
-            changes caused by the removal of this child recurface. The reason for this is that the previous call
-            to `self._flag_cached_surfaces(do_clear_self=False)` would reset its cached surface if this object
-            can_render, and if this object cannot render then its removal is irrelevant even if it would change
-            the value of the parent's can_render
-            """
 
         else:  # If this recurface was previously top-level
             # Assumes that the new parent will render to the same destination as this recurface did
@@ -109,7 +107,7 @@ class Recurface:
             self.__parent_recurface = ref(value)
             value.add_child_recurface(self)
 
-            self._flag_cached_surfaces(do_clear_self=False)
+            value._flag_cached_surfaces(do_clear_self=False)
 
     @property
     def ancestry(self) -> tuple["Recurface", ...]:
@@ -168,7 +166,8 @@ class Recurface:
         self.__render_position = [value[0], value[1]] if value else None
 
         self._flag_rects()
-        self._flag_cached_surfaces(do_clear_self=False)
+        if parent := self.parent_recurface:
+            parent._flag_cached_surfaces(do_clear_self=False)
 
     @property
     def render_coords(self) -> Optional[tuple[int, int]]:
@@ -176,7 +175,7 @@ class Recurface:
         Represents the exact (x, y) coordinates that this recurface will render at on the destination.
 
         The values have been rounded using .to_nearest_pixel() before being returned.
-        This rounding must be done before the values are used be pygame, as it instead floors float values, which
+        This rounding must be done before the values are used by pygame, as it instead floors float values, which
         leads to stuttery motion in some cases
         """
 
@@ -242,26 +241,29 @@ class Recurface:
         if self.__render_priority == value:
             return  # Already set to the correct value
 
+        parent = self.parent_recurface
+
         # Determining if this recurface has changed from ordered to unordered, or vice-versa
-        is_ordered_old = (self.parent_recurface and self.parent_recurface.are_child_recurfaces_ordered)
+        is_ordered_old = (parent and parent.are_child_recurfaces_ordered)
         self.__render_priority = value
-        if self.parent_recurface:
-            self.parent_recurface._organise_child_recurfaces()
-        is_ordered_new = (self.parent_recurface and self.parent_recurface.are_child_recurfaces_ordered)
+        if parent:
+            parent._organise_child_recurfaces()
+        is_ordered_new = (parent and parent.are_child_recurfaces_ordered)
 
         if is_ordered_old != is_ordered_new:  # Ordering of all siblings has been changed, they must all be updated
-            for sibling in self.parent_recurface.child_recurfaces:
+            for sibling in parent.child_recurfaces:
                 sibling._flag_rects()
         else:  # Only this object has been reordered amongst its siblings
             self._flag_rects()
 
-        self._flag_cached_surfaces(do_clear_self=False)
+        if parent:
+            parent._flag_cached_surfaces(do_clear_self=False)
 
     @property
     def do_render(self) -> bool:
         """
-        A flag property to be used as desired, which determines whether this recurface will be rendered to
-        its destination or not each time .render() is called on the top-level recurface
+        A flag property to be used as desired, which determines whether this recurface (along with any child recurfaces)
+        will be rendered to its destination or not each time .render() is called on the top-level recurface
         """
 
         return self.__do_render
@@ -274,7 +276,8 @@ class Recurface:
         self.__do_render = value
 
         self._flag_rects()
-        self._flag_cached_surfaces(do_clear_self=False)
+        if parent := self.parent_recurface:
+            parent._flag_cached_surfaces(do_clear_self=False)
 
     @property
     def before_render(self) -> Callable:
@@ -299,38 +302,95 @@ class Recurface:
         self.__before_render = before_render
 
     @property
-    def post_processors(self) -> tuple[Callable[[Surface, "Recurface"], Surface], ...]:
+    def render_pipeline(self) -> tuple[Union[PipelineFlag, PipelineFilter], ...]:
         """
-        A list of callbacks which are passed the working surface during rendering, and may edit it freely
-        before it is applied to the destination.
+        A sequence of filters and flags which determine how this recurface's surface is processed
+        during rendering. The surface will have the stored filters/flags applied to it in the order
+        in which they are stored within this property.
 
-        This can be used to apply effects such as dynamic filters to surfaces,
-        but is inherently performance-heavy to use, as the presence of a post-processor on a recurface disables the
-        surface caching system for any surfaces it is able to cause modifications to during rendering
-        (typically the entire branch of surfaces that recurface is a part of)
+        Flags should be enum values from PipelineFlag, and are used to determine at which point the
+        child recurfaces should be applied to the surface, and also any points during the pipeline at which
+        the surface should be cached.
+        There must always be exactly one PipelineFlag.APPLY_CHILDREN flag present in this pipeline, but any
+        number of PipelineFlag.CACHE_SURFACE flags (or none at all) can be present.
+
+        Cached surfaces will prevent any steps before them in the pipeline from being re-run if they are unchanged,
+        saving on performance at the cost of keeping an extra surface in memory.
+
+        Filters can also be stored within this pipeline to apply last-minute changes to the working surface and
+        its render location before it is rendered. These changes are not permanently applied to the stored
+        surface, and will only be present on the rendered image as long as the filter is present in this recurface's
+        pipeline.
+        If a filter is not 'deterministic' (i.e. always returns the same output when given the same arguments),
+        the working surface cannot be cached after it in the pipeline - doing so would cause the rendered image not to
+        update whenever the filter would produce a different output.
+
+        Filters should never make modifications to recurfaces, only to the surface and render location they are given;
+        As filters are executed mid-render, modifications to recurfaces at this point would cause unexpected behaviour
         """
 
-        return tuple(self.__post_processors)
+        return tuple(self.__render_pipeline)
 
-    @post_processors.setter
-    def post_processors(self, value: Optional[Iterable[Callable[[Surface, "Recurface"], Surface]]]):
-        if (not value) and (not self.__post_processors):
-            return  # Already set to the correct value
-        if value is not None:
-            value = list(value)
-            if value == self.__post_processors:
-                return  # Already set to the correct value
+    @render_pipeline.setter
+    def render_pipeline(self, value: Iterable[Union[PipelineFlag, PipelineFilter]]):
+        is_unchanged = True
+        is_deterministic = True
+        apply_children_flags = 0
 
-        self.__post_processors = value
+        new_pipeline = []
+        new_cached_surfaces = []
+        cached_surface_index = 0
 
         """
-        Changes to the post-processors are managed as below only if this recurface has a rendered surface, since
-        they are only applied at all if this recurface has its own stored surface (whereas other properties must take
-        child recurfaces into account)
+        This loop simultaneously stores the new pipeline, preserves as many cached surfaces as possible based on
+        where the new pipeline first diverges from the previous one, and runs validation checks on the items
+        in the new pipeline
+        """
+        for item_index, item in enumerate(value):
+            if is_unchanged:
+                try:
+                    if self.__render_pipeline[item_index] != item:
+                        is_unchanged = False
+                except IndexError:
+                    is_unchanged = False
+
+            if item == PipelineFlag.CACHE_SURFACE:
+                if not is_deterministic:
+                    raise ValueError("cannot cache surface after a non-deterministic filter")
+
+                if is_unchanged:
+                    new_cached_surfaces.append(self.__cached_surfaces[cached_surface_index])
+                else:
+                    new_cached_surfaces.append(None)
+                cached_surface_index += 1
+            elif item == PipelineFlag.APPLY_CHILDREN:
+                apply_children_flags += 1
+            elif type(item) is PipelineFilter:
+                if (not item.is_deterministic) and is_deterministic:
+                    is_deterministic = False
+
+            new_pipeline.append(item)
+
+        if is_unchanged:
+            return
+
+        if apply_children_flags != 1:
+            raise ValueError(
+                f"render pipeline must contain exactly 1 '{PipelineFlag.APPLY_CHILDREN}' flag"
+                f" (received {apply_children_flags})"
+            )
+
+        self.__render_pipeline = new_pipeline
+        self.__cached_surfaces = new_cached_surfaces
+
+        """
+        Changes to this property only trigger the code below if this recurface has a rendered surface
+        (whereas other properties must consider that child recurfaces may be rendered)
         """
         if self.is_surface_rendered:
             self._flag_rects()
-            self._flag_cached_surfaces(do_clear_self=False)
+            if parent := self.parent_recurface:
+                parent._flag_cached_surfaces(do_clear_self=False)
 
     @property
     def is_surface_rendered(self) -> bool:
@@ -462,7 +522,7 @@ class Recurface:
 
         # A data store which is accessible to the entire chain for this render, to minimise passing data along manually
         stack_data = {
-            "cache_blockers": set()
+            "surface_caching_blockers": set()
         }
         result += self._render(destination, stack_data=stack_data)
 
@@ -502,61 +562,89 @@ class Recurface:
 
         # Rendering
         if self.surface:  # This recurface must paste a surface onto the destination
-            has_post_processors = bool(self.post_processors)
+            working_render_coords = (
+                self.x_render_coord + coords_offset[0],
+                self.y_render_coord + coords_offset[1]
+            )
+            working_surface = None
+            pipeline_index = 0
+            next_cached_surface_index = 0
+            is_surface_caching_blocked = False
 
-            if self.__cached_surface:  # A previously made surface is still stored for re-use
-                working_surface = self.__cached_surface
+            # Finding the most complete cached surface available
+            for cached_surface_reverse_index, cached_surface in enumerate(reversed(self.__cached_surfaces)):
+                if cached_surface:
+                    working_surface = cached_surface.copy()
+                    retrieved_cached_surface_index = (len(self.__cached_surfaces)-1) - cached_surface_reverse_index
+                    next_cached_surface_index = retrieved_cached_surface_index + 1
 
-                if has_post_processors:
-                    # Necessary to make a copy here to prevent the cached surface being modified
-                    working_surface = working_surface.copy()
+                    # Finding the pipeline index it corresponds to
+                    cache_flag_reverse_index = 0  # Tracks how many cache flags have been encountered so far
+                    for pipeline_reverse_index, pipeline_item in enumerate(reversed(self.__render_pipeline)):
+                        if pipeline_item == PipelineFlag.CACHE_SURFACE:
+                            # If this is the cache flag corresponding to the retrieved cached surface
+                            if cache_flag_reverse_index == cached_surface_reverse_index:
+                                cache_flag_pipeline_index = (len(self.__render_pipeline)-1) - pipeline_reverse_index
+                                # Rendering will resume from this point in the pipeline
+                                pipeline_index = cache_flag_pipeline_index + 1
+                                break
+                            # Otherwise, increment the number of cache flags encountered
+                            else:
+                                cache_flag_reverse_index += 1
+                    break
 
-            else:  # A fresh surface must be made
+            if not working_surface:  # No valid cached surface was found
                 working_surface = self.generate_surface_copy()
 
-                cache_blockers_len_before = len(stack_data["cache_blockers"])
+            # Working through the render pipeline
+            while pipeline_index < len(self.__render_pipeline):
+                pipeline_item = self.__render_pipeline[pipeline_index]
 
-                # Render all child recurfaces onto the working surface, in the correct order
-                for child in self.child_recurfaces:
-                    child_rects = child._render(working_surface, stack_data=stack_data)
+                if pipeline_item == PipelineFlag.CACHE_SURFACE:
+                    if not is_surface_caching_blocked:
+                        self.__cached_surfaces[next_cached_surface_index] = working_surface.copy()
+                        next_cached_surface_index += 1
 
-                    # Child rects are only needed if the full area of this recurface will not be updated
-                    if not is_fully_updated:
-                        for child_rect in child_rects:
-                            child_rect.x += self.x_render_coord
-                            child_rect.y += self.y_render_coord
-                            result.append(child_rect)
+                elif pipeline_item == PipelineFlag.APPLY_CHILDREN:
+                    caching_blockers_len_before = len(stack_data["surface_caching_blockers"])
 
-                cache_blockers_len_after = len(stack_data["cache_blockers"])
+                    # Render all child recurfaces onto the working surface, in the correct order
+                    for child in self.child_recurfaces:
+                        child_rects = child._render(working_surface, stack_data=stack_data, coords_offset=(0, 0))
 
-                # Only cache this working surface if none of the child recurfaces are blockers
-                if cache_blockers_len_before == cache_blockers_len_after:
-                    self.__cached_surface = working_surface
+                        # Child rects are only needed if the full area of this recurface will not be updated
+                        if not is_fully_updated:
+                            for child_rect in child_rects:
+                                child_rect.x += self.x_render_coord
+                                child_rect.y += self.y_render_coord
+                                result.append(child_rect)
 
-                    if has_post_processors:
-                        # Necessary to make a copy here to prevent the cached surface being modified
-                        working_surface = working_surface.copy()
+                    caching_blockers_len_after = len(stack_data["surface_caching_blockers"])
+                    # If at least 1 child recurface is a blocker, or has blockers in its own children, etc.
+                    if caching_blockers_len_before != caching_blockers_len_after:
+                        is_surface_caching_blocked = True
 
-            if has_post_processors:
-                """
-                If a recurface applies post-processors, it is assumed that the final working surface it generates will
-                change each render (as these processors may modify the surface differently each time they are applied);
-                As such, its render location is flagged as changed immediately, and caching is blocked for any parents
-                which apply this working surface onto their own surfaces
-                """
-                self.__has_rect_changed = True
-                stack_data["cache_blockers"].add(self)
+                else:  # Pipeline item is a filter
+                    if not pipeline_item.is_deterministic:
+                        """
+                        If a non-deterministic filter is applied, it is assumed that the surface and/or render position
+                        the filter outputs will change each render regardless of input. As such, this recurface is
+                        flagged immediately to ensure that the surface's onscreen render location gets updated
+                        next frame, and surface caching is blocked for any parents which apply this working surface
+                        onto their own surfaces
+                        """
+                        self.__has_rect_changed = True
+                        stack_data["surface_caching_blockers"].add(self)
 
-                for processor in self.post_processors:
-                    working_surface = processor(working_surface, self)
+                    working_surface, working_render_coords = pipeline_item.filter(
+                        working_surface, working_render_coords
+                    )
+
+                pipeline_index += 1
 
             # Apply the surface to its destination
             self.__rect = destination.blit(
-                working_surface,
-                (
-                    self.x_render_coord + coords_offset[0],
-                    self.y_render_coord + coords_offset[1]
-                )
+                working_surface, working_render_coords
             )
 
             if is_fully_updated:
@@ -597,8 +685,17 @@ class Recurface:
         this recurface or one of its descendants
         """
 
-        if do_clear_self:
-            self.__cached_surface = None
+        if do_clear_self:  # Reset all cached surfaces
+            self.__cached_surfaces = [None] * len(self.__cached_surfaces)
+        else:  # Only reset cached surfaces which have child recurfaces applied to them (assumes a child has changed)
+            cached_surface_index = -1
+            # Reset cached surfaces starting from the end, so that less total iterations are necessary
+            for item in reversed(self.__render_pipeline):
+                if item == PipelineFlag.APPLY_CHILDREN:
+                    break
+                elif PipelineFlag.CACHE_SURFACE:
+                    self.__cached_surfaces[cached_surface_index] = None
+                    cached_surface_index -= 1
 
         # Getting the previous value and a new one for can_render
         can_render_previous = self.__can_render_previous
@@ -606,11 +703,11 @@ class Recurface:
         # Storing the updated value
         self.__can_render_previous = can_render
 
-        if not self.parent_recurface:
+        if not (parent := self.parent_recurface):
             return
 
         if can_render or (can_render != can_render_previous):
-            return self.parent_recurface._flag_cached_surfaces(do_clear_self=True)
+            return parent._flag_cached_surfaces(do_clear_self=False)
 
     def _reset_rects(self) -> list[Rect]:
         """
