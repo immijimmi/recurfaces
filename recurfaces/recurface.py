@@ -326,7 +326,8 @@ class Recurface:
         update whenever the filter would produce a different output.
 
         Filters should never make modifications to recurfaces, only to the surface and render location they are given;
-        As filters are executed mid-render, modifications to recurfaces at this point would cause unexpected behaviour
+        Since filters are executed mid-render, modifications to recurfaces at that stage would result in
+        unexpected behaviour
         """
 
         return tuple(self.__render_pipeline)
@@ -486,7 +487,7 @@ class Recurface:
 
         return self.render_position
 
-    def unlink(self) -> None:
+    def unlink(self, do_apply_position_rounding: bool) -> None:
         """
         Detaches this recurface from its parent and children.
         Children then have their positions updated to account for the removal of this recurface's offset,
@@ -494,14 +495,22 @@ class Recurface:
         This effectively extracts the recurface from its chain, leaving everything else in place
         """
 
-        parent = self.parent_recurface
+        offset = None
+        if self.render_position:
+            if do_apply_position_rounding:
+                offset = self.to_nearest_pixel(*self.render_position)
+            else:
+                offset = self.render_position
+
+        old_parent = self.parent_recurface
         self.parent_recurface = None
 
-        for child in self.child_recurfaces:
-            child.parent_recurface = None
+        for old_child in self.child_recurfaces:
+            old_child.parent_recurface = None
 
-            child.move_render_position(*self.render_position)
-            child.parent_recurface = parent
+            if offset:
+                old_child.move_render_position(*offset)
+            old_child.parent_recurface = old_parent
 
     def render(self, destination: Surface) -> list[Rect]:
         """
@@ -615,8 +624,8 @@ class Recurface:
                         # Child rects are only needed if the full area of this recurface will not be updated
                         if not is_fully_updated:
                             for child_rect in child_rects:
-                                child_rect.x += self.x_render_coord
-                                child_rect.y += self.y_render_coord
+                                child_rect.x += working_render_coords[0]
+                                child_rect.y += working_render_coords[1]
                                 result.append(child_rect)
 
                     caching_blockers_len_after = len(stack_data["surface_caching_blockers"])
@@ -712,8 +721,8 @@ class Recurface:
     def _reset_rects(self) -> list[Rect]:
         """
         Sets the variables which hold this object's rendering details back to their default values, and returns
-        the last render location (if any). Recursively resets child recurfaces, and (if necessary) returns their
-        render locations too.
+        a pygame Rect representing the last on-screen render location (if any). Recursively resets child
+        recurfaces, and (if necessary) returns rects for their render locations too
         """
 
         # If this recurface has already been reset once since the last render, no further work needs doing
@@ -747,8 +756,8 @@ class Recurface:
     def _frontload_update_rects(self, rects: Iterable[Rect]) -> None:
         """
         Stores the provided rects inside the first recurface in this object's ancestry (starting from this one)
-        which has a rendered surface; these rects are assumed to represent subsections of that surface to be updated
-        next frame.
+        which has a rendered surface, updating their coordinates accordingly; these rects are assumed to represent
+        subsections of that surface to be updated next frame.
 
         If there are no rendered recurfaces in this object's ancestry, the top-level recurface stores these rects
         separately, to be returned as separate areas of the outer destination which must be updated next frame
