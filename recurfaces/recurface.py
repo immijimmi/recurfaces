@@ -631,7 +631,8 @@ class Recurface:
                                 render_area = working_surface.get_rect().move(*working_render_coords)
                                 clipped_rect = child_rect.clip(render_area)
 
-                                result.append(clipped_rect)
+                                if clipped_rect:  # If the rect covers no area (either dimension is 0) it will be falsy
+                                    result.append(clipped_rect)
 
                     caching_blockers_len_after = len(stack_data["surface_caching_blockers"])
                     # If at least 1 child recurface is a blocker, or has blockers in its own children, etc.
@@ -780,7 +781,8 @@ class Recurface:
 
                 # Truncate the dimensions of the rect so that it only covers this object's render area
                 clipped_rect = rect.clip(self.__rect)
-                self.__changed_sub_rects.append(clipped_rect)
+                if clipped_rect:  # If the rect covers no area (either dimension is 0) it will be falsy
+                    self.__changed_sub_rects.append(clipped_rect)
         else:  # The top-level recurface is not rendered, meaning that these rects are for the destination
             # As this object is not part of the current render hierarchy, its offset need not be applied to the rects
             self.__top_level_changed_rects += list(rects)
