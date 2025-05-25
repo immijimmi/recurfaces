@@ -630,7 +630,6 @@ class Recurface:
                                 # Truncate the dimensions of the rect so that it only covers this object's render area
                                 render_area = working_surface.get_rect().move(*working_render_coords)
                                 clipped_rect = child_rect.clip(render_area)
-
                                 if clipped_rect:  # If the rect covers no area (either dimension is 0) it will be falsy
                                     result.append(clipped_rect)
 
