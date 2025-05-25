@@ -12,7 +12,7 @@ class PipelineFlag(str, Enum):
 class PipelineFilter:
     def __init__(
             self,
-            filter_func: Callable[[Surface, tuple[int, int]], tuple[Surface, tuple[int, int]]],
+            filter_func: Callable[[Surface], Surface],
             is_deterministic: bool
     ):
         self.__filter = filter_func
@@ -28,21 +28,20 @@ class PipelineFilter:
     def is_deterministic(self) -> bool:
         """
         This attribute should be set to a value which indicates whether the stored filter function will
-        process its inputs identically each time it is called; If, when given the same arguments, it always returns
-        the same output values, it is considered deterministic for the purposes of this class.
+        process its input identically each time it is called;
+        If, when given an input equivalent to a previous input, it always produces a corresponding output
+        equivalent to the outputs produced the previous times it received that input, it is considered deterministic
+        for the purposes of this class.
 
-        This distinction is necessary to determine whether the filter's outputs can be cached or not
+        This distinction is necessary to determine whether the filter's output can be cached or not
         """
 
         return self.__is_deterministic
 
     @property
-    def filter(self) -> Callable[[Surface, tuple[int, int]], tuple[Surface, tuple[int, int]]]:
+    def filter(self) -> Callable[[Surface], Surface]:
         """
-        The filter function stored under this property will receive 2 arguments - a pygame Surface, and
-        a tuple of two int coordinates representing the current on-screen render location of that surface.
-
-        It should also return a surface and a tuple of two int coordinates (both placed in an outer tuple),
-        modified as desired
+        The filter function stored under this property will receive a pygame Surface, and should return a
+        corresponding surface modified as desired
         """
         return self.__filter

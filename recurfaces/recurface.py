@@ -317,15 +317,14 @@ class Recurface:
         Cached surfaces will prevent any steps before them in the pipeline from being re-run if they are unchanged,
         saving on performance at the cost of keeping an extra surface in memory.
 
-        Filters can also be stored within this pipeline to apply last-minute changes to the working surface and
-        its render location before it is rendered. These changes are not permanently applied to the stored
-        surface, and will only be present on the rendered image as long as the filter is present in this recurface's
-        pipeline.
-        If a filter is not 'deterministic' (i.e. always returns the same output when given the same arguments),
-        the working surface cannot be cached after it in the pipeline - doing so would cause the rendered image not to
-        update whenever the filter would produce a different output.
+        Filters can also be stored within this pipeline to apply last-minute changes to the working surface
+        before it is rendered. These changes are not permanently applied to the stored surface, and will only be
+        present on the rendered image as long as the filter is present in this recurface's pipeline.
+        If a filter is flagged as not being 'deterministic' (i.e. always returns the same output when
+        given the same input), the working surface cannot be cached after it in the pipeline - doing so would cause
+        the rendered image not to update whenever the filter would produce a different output.
 
-        Filters should never make modifications to recurfaces, only to the surface and render location they are given;
+        Filters should never make modifications to recurfaces, only to the surface they are given;
         Since filters are executed mid-render, modifications to recurfaces at that stage would result in
         unexpected behaviour
         """
@@ -624,9 +623,15 @@ class Recurface:
                         # Child rects are only needed if the full area of this recurface will not be updated
                         if not is_fully_updated:
                             for child_rect in child_rects:
+                                # Add the difference in coordinates between the destination and this recurface
                                 child_rect.x += working_render_coords[0]
                                 child_rect.y += working_render_coords[1]
-                                result.append(child_rect)
+
+                                # Truncate the dimensions of the rect so that it only covers this object's render area
+                                render_area = working_surface.get_rect().move(*working_render_coords)
+                                clipped_rect = child_rect.clip(render_area)
+
+                                result.append(clipped_rect)
 
                     caching_blockers_len_after = len(stack_data["surface_caching_blockers"])
                     # If at least 1 child recurface is a blocker, or has blockers in its own children, etc.
@@ -636,8 +641,8 @@ class Recurface:
                 else:  # Pipeline item is a filter
                     if not pipeline_item.is_deterministic:
                         """
-                        If a non-deterministic filter is applied, it is assumed that the surface and/or render position
-                        the filter outputs will change each render regardless of input. As such, this recurface is
+                        If a non-deterministic filter is applied, it is assumed that the surface the filter
+                        outputs will change each render regardless of input. As such, this recurface is
                         flagged immediately to ensure that the surface's onscreen render location gets updated
                         next frame, and surface caching is blocked for any parents which apply this working surface
                         onto their own surfaces
@@ -645,9 +650,7 @@ class Recurface:
                         self.__has_rect_changed = True
                         stack_data["surface_caching_blockers"].add(self)
 
-                    working_surface, working_render_coords = pipeline_item.filter(
-                        working_surface, working_render_coords
-                    )
+                    working_surface = pipeline_item.filter(working_surface)
 
                 pipeline_index += 1
 
@@ -770,12 +773,14 @@ class Recurface:
             return self.parent_recurface._frontload_update_rects(rects)
 
         if self.is_surface_rendered:
-            # Add this object's render coords to the provided rects
             for rect in rects:
-                rect.x += self.x_render_coord
-                rect.y += self.y_render_coord
+                # Add the difference in coordinates between the last render destination and this recurface
+                rect.x += self.__rect.x
+                rect.y += self.__rect.y
 
-                self.__changed_sub_rects.append(rect)
+                # Truncate the dimensions of the rect so that it only covers this object's render area
+                clipped_rect = rect.clip(self.__rect)
+                self.__changed_sub_rects.append(clipped_rect)
         else:  # The top-level recurface is not rendered, meaning that these rects are for the destination
             # As this object is not part of the current render hierarchy, its offset need not be applied to the rects
             self.__top_level_changed_rects += list(rects)

@@ -11,12 +11,21 @@ def res():
         surface_1 = Surface((300, 200))
         surface_2 = Surface((100, 300))
         surface_3 = Surface((70, 60))
+        surface_simple = Surface((100, 100))
 
         recurface_no_position = Recurface(surface_1)
         recurface_1 = Recurface(surface=surface_1, position=(10, 20))
         recurface_2 = Recurface(surface=surface_2, position=(30, 40))
         recurface_3 = Recurface(surface=surface_3, position=(50, 60))
         recurface_no_surface = Recurface(position=(10, 20))
+
+        recurface_simple_1 = Recurface(surface=surface_simple, position=(0, 0))
+        recurface_simple_2 = Recurface(position=(1, 1))
+        recurface_simple_3 = Recurface(surface=surface_simple, position=(1, 1))
+        recurface_simple_4 = Recurface(position=(1, 1))
+        recurface_simple_5 = Recurface(position=(1, 1))
+        recurface_simple_6 = Recurface(surface=surface_simple, position=(1, 1))
+        recurface_simple_7 = Recurface(surface=surface_simple, position=(1, 1))
 
     return RecurfaceResources
 
@@ -195,7 +204,7 @@ class TestRecurface:
         assert [*res.recurface_1.child_recurfaces] == [res.recurface_2]
         assert [*res.recurface_2.child_recurfaces] == [res.recurface_3]
 
-        res.recurface_2.unlink()
+        res.recurface_2.unlink(True)
 
         assert [*res.recurface_2.child_recurfaces] == []
         assert res.recurface_2.parent_recurface is None
@@ -210,7 +219,7 @@ class TestRecurface:
         res.recurface_2.add_child_recurface(res.recurface_3)
         # Repositioning recurface_2 should persist on recurface_3 even after unlinking
         res.recurface_2.move_render_position(4, 5)
-        res.recurface_2.unlink()
+        res.recurface_2.unlink(True)
 
         rects = res.recurface_1.render(res.surface_bg)
         assert rects == [Rect(94, 125, 70, 60)]
@@ -223,7 +232,7 @@ class TestRecurface:
         res.recurface_2.move_render_position(4, 5)
 
         res.recurface_1.render(res.surface_bg)
-        res.recurface_2.unlink()  # Should attach its rect to recurface_1 on the way out
+        res.recurface_2.unlink(True)  # Should attach its rect to recurface_1 on the way out
 
         rects = res.recurface_1.render(res.surface_bg)
         assert rects == [Rect(44, 65, 100, 155), Rect(94, 125, 70, 60)]
@@ -239,3 +248,66 @@ class TestRecurface:
 
         rects = res.recurface_1.render(res.surface_bg)
         assert rects == [Rect(20, 20, 300, 200), Rect(30, 20, 300, 200)]
+
+    def test_long_chain_rects(self, res):
+        """
+        This test checks that a long recurface chain with a mix of surfaces and no surfaces returns the correct
+        rects when each member of the chain is un-rendered and re-rendered.
+
+        The rationale for this test is to ensure that the returned rects are correctly modified as they are
+        passed up the chain, offsetting coordinates and truncating dimensions accordingly
+        """
+
+        res.recurface_simple_1.add_child_recurface(res.recurface_simple_2)
+        res.recurface_simple_2.add_child_recurface(res.recurface_simple_3)
+        res.recurface_simple_3.add_child_recurface(res.recurface_simple_4)
+        res.recurface_simple_4.add_child_recurface(res.recurface_simple_5)
+        res.recurface_simple_5.add_child_recurface(res.recurface_simple_6)
+        res.recurface_simple_6.add_child_recurface(res.recurface_simple_7)
+
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == [Rect(0, 0, 100, 100)]
+
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == []
+
+        res.recurface_simple_7.do_render = False
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == [Rect(6, 6, 94, 94)]
+        res.recurface_simple_7.do_render = True
+        res.recurface_simple_1.render(res.surface_bg)
+
+        res.recurface_simple_6.do_render = False
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == [Rect(5, 5, 95, 95)]
+        res.recurface_simple_6.do_render = True
+        res.recurface_simple_1.render(res.surface_bg)
+
+        # 5 has no surface of its own, so the output should match 6
+        res.recurface_simple_5.do_render = False
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == [Rect(5, 5, 95, 95)]
+        res.recurface_simple_5.do_render = True
+        res.recurface_simple_1.render(res.surface_bg)
+
+        res.recurface_simple_4.do_render = False
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == [Rect(5, 5, 95, 95)]
+        res.recurface_simple_4.do_render = True
+        res.recurface_simple_1.render(res.surface_bg)
+
+        res.recurface_simple_3.do_render = False
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == [Rect(2, 2, 98, 98)]
+        res.recurface_simple_3.do_render = True
+        res.recurface_simple_1.render(res.surface_bg)
+
+        res.recurface_simple_2.do_render = False
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == [Rect(2, 2, 98, 98)]
+        res.recurface_simple_2.do_render = True
+        res.recurface_simple_1.render(res.surface_bg)
+
+        res.recurface_simple_1.do_render = False
+        rects = res.recurface_simple_1.render(res.surface_bg)
+        assert rects == [Rect(0, 0, 100, 100)]
