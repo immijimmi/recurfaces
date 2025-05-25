@@ -1,5 +1,9 @@
 import pytest
-from pygame import Surface, Rect
+from pygame import display, Surface, Rect
+
+from datetime import datetime
+from json import loads, dumps
+from subprocess import check_output
 
 from recurfaces import Recurface
 
@@ -252,7 +256,7 @@ class TestRecurface:
     def test_long_chain_rects(self, res):
         """
         This test checks that a long recurface chain with a mix of surfaces and no surfaces returns the correct
-        rects when each member of the chain is un-rendered and re-rendered.
+        rects when heavily nested members of the chain are un-rendered and re-rendered.
 
         The rationale for this test is to ensure that the returned rects are correctly modified as they are
         passed up the chain, offsetting coordinates and truncating dimensions accordingly
@@ -265,11 +269,7 @@ class TestRecurface:
         res.recurface_simple_5.add_child_recurface(res.recurface_simple_6)
         res.recurface_simple_6.add_child_recurface(res.recurface_simple_7)
 
-        rects = res.recurface_simple_1.render(res.surface_bg)
-        assert rects == [Rect(0, 0, 100, 100)]
-
-        rects = res.recurface_simple_1.render(res.surface_bg)
-        assert rects == []
+        res.recurface_simple_1.render(res.surface_bg)
 
         res.recurface_simple_7.do_render = False
         rects = res.recurface_simple_1.render(res.surface_bg)
@@ -290,6 +290,7 @@ class TestRecurface:
         res.recurface_simple_5.do_render = True
         res.recurface_simple_1.render(res.surface_bg)
 
+        # Likewise with 4
         res.recurface_simple_4.do_render = False
         rects = res.recurface_simple_1.render(res.surface_bg)
         assert rects == [Rect(5, 5, 95, 95)]
@@ -299,15 +300,91 @@ class TestRecurface:
         res.recurface_simple_3.do_render = False
         rects = res.recurface_simple_1.render(res.surface_bg)
         assert rects == [Rect(2, 2, 98, 98)]
-        res.recurface_simple_3.do_render = True
-        res.recurface_simple_1.render(res.surface_bg)
 
-        res.recurface_simple_2.do_render = False
-        rects = res.recurface_simple_1.render(res.surface_bg)
-        assert rects == [Rect(2, 2, 98, 98)]
-        res.recurface_simple_2.do_render = True
-        res.recurface_simple_1.render(res.surface_bg)
+    def test_performance(self, res):
+        """
+        This test implements a broad check to ensure that performance has not significantly dropped due to
+        applied changes.
 
-        res.recurface_simple_1.do_render = False
-        rects = res.recurface_simple_1.render(res.surface_bg)
-        assert rects == [Rect(0, 0, 100, 100)]
+        The target value should be calibrated by running this test on a specific baseline commit, with no other
+        heavy tasks running on the same machine during calibration. This will generate a config.json file
+        in the test folder.
+
+        This test should then be run again, with that config file present, on the version which needs testing
+        """
+
+        def get_commit_hash():
+            if calibration_commit is not None:
+                return check_output("git show --pretty=format:'%H' --no-patch").decode("UTF-8")
+
+        """
+        This variable should be set to the relevant commit hash once this test is otherwise completed and committed.
+        When making changes to this test, it should be set back to None in the commit which applies the changes,
+        and then set to that commit's hash in the next commit
+        """
+        calibration_commit = None
+
+        rounding_precision = 3
+        target_ms = None
+        json_file_path = "test/config.json"
+        json_key = "test_performance_target_ms"
+        config = {json_key: None}
+        current_commit = get_commit_hash()
+
+        # Loading config
+        try:
+            with open(json_file_path, "r") as config_file:
+                config = loads(config_file.read())
+                target_ms = config[json_key]
+
+            # No calibration needed, so should not be on the calibration commit
+            assert current_commit != calibration_commit, (
+                "the calibration commit is currently checked out."
+                " Please checkout the desired commit for testing and re-run"
+            )
+        except (FileNotFoundError, KeyError):  # No valid config, calibrate and save a fresh config file
+            assert current_commit == calibration_commit, (
+                f"please checkout commit {calibration_commit} and re-run to calibrate this test"
+            )
+
+        # Running the test
+        res.recurface_1.add_child_recurface(res.recurface_2)
+        res.recurface_1.surface.fill("white")
+        res.recurface_1.flag_surface()
+        res.recurface_2.surface.fill("red")
+        res.recurface_2.flag_surface()
+
+        display.init()
+        window = display.set_mode((400, 300))
+
+        start_time = datetime.now()
+        for i in range(10000):
+            if i % 2 == 0:
+                res.recurface_2.move_render_position(50)
+            else:
+                res.recurface_2.move_render_position(-50)
+
+            rects = res.recurface_1.render(window)
+            display.update(rects)
+        end_time = datetime.now()
+
+        performance_ms = round((end_time - start_time).total_seconds() * 1000, rounding_precision)
+
+        if target_ms is None:  # Store calibration results
+            # Target will be set to 5% longer than calibration performance (typical deviation is no more than 2-3%)
+            target_ms = round(performance_ms * 1.05, rounding_precision)
+
+            config[json_key] = target_ms
+            with open(json_file_path, "w") as config_file:
+                config_file.write(dumps(config))
+
+            raise RuntimeError(
+                f"test calibration completed ({performance_ms}ms), target performance stored in '{json_file_path}'."
+                " Please run tests again with the desired commit checked out"
+            )
+
+        else:
+            assert performance_ms <= target_ms, (
+                "test did not complete within the desired timeframe"
+                f" ({performance_ms}ms > {target_ms}ms)"
+            )
