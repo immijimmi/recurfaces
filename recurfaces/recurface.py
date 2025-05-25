@@ -833,14 +833,7 @@ class Recurface:
             for bigger_rect_index in range(0, rect_index):
                 bigger_rect = rects_by_surface_area[bigger_rect_index]
 
-                is_contained = not (
-                        (rect_to_check.left < bigger_rect.left) or
-                        (rect_to_check.right > bigger_rect.right) or
-                        (rect_to_check.top < bigger_rect.top) or
-                        (rect_to_check.bottom > bigger_rect.bottom)
-                )  # This should require the minimum amount of comparisons on average
-
-                if is_contained:
+                if bigger_rect.contains(rect_to_check):
                     do_include = False
                     break
 
