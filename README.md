@@ -79,8 +79,26 @@ pipeline simply applies the surfaces from child recurfaces to the current object
 next frame if no changes which affect the rendered image are made in the interim; this will not require customisation in most cases.
 
 Through this rendering pipeline it is possible to apply filters which make last-minute modifications to a recurface's surface when it is being
-rendered - this can include pasting additional layers onto the working copy of the surface, scaling and rotating it, etc. Filters can be created
-by importing the PipelineFilter class and passing a function which receives and returns a surface object into its constructor.
+rendered - this can include pasting additional layers onto the working copy of the surface, scaling and rotating it, etc.
+
+Filters can be created by importing the PipelineFilter class, and passing a function which receives and returns a surface object into its constructor:
+
+```python
+from recurfaces import Recurface, PipelineFilter, PipelineFlag
+
+
+def red_fill(surface):
+    surface.fill("red")
+    return surface
+
+
+# Filter is deterministic because this particular function will always modify a given surface in the exact same way
+filter_red_fill = PipelineFilter(red_fill, is_deterministic=True)
+
+my_recurface = Recurface(
+    render_pipeline = [PipelineFlag.APPLY_CHILDREN, filter_red_fill, PipelineFlag.CACHE_SURFACE]
+)
+```
 
 - Since the render pipeline is applied to the recurface's stored surface, any recurfaces which themselves have no surface will not implement
   their pipeline during rendering
