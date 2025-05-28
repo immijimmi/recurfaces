@@ -306,7 +306,8 @@ class Recurface:
         """
         A sequence of filters and flags which determine how this recurface's surface is processed
         during rendering. The surface will have the stored filters/flags applied to it in the order
-        in which they are stored within this property.
+        in which they are stored within this property. If a recurface has no stored surface, its render pipeline
+        will not be implemented during rendering.
 
         Flags should be enum values from PipelineFlag, and are used to determine at which point the
         child recurfaces should be applied to the surface, and also any points during the pipeline at which

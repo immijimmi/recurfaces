@@ -71,3 +71,38 @@ surface than its parent, but when it is rendered any part of it which is not wit
 Only one chain of recurfaces should be rendered to each external destination. If you have two or more separate chains  that you want to render
 to a single destination, merge them by making a new blank recurface (no surface, and a `.render_position` of `(0, 0)`) and adding both chains
 as children of that recurface.
+
+### The Render Pipeline
+
+Recurface objects each store a render pipeline which dictates the steps carried out in that specific object's render process. The default
+pipeline simply applies the surfaces from child recurfaces to the current object's surface, and then caches that composited surface for re-use
+next frame if no changes which affect the rendered image are made in the interim; this will not require customisation in most cases.
+
+Through this rendering pipeline it is possible to apply filters which make last-minute modifications to a recurface's surface when it is being
+rendered - this can include pasting additional layers onto the working copy of the surface, scaling and rotating it, etc. Filters can be created
+by importing the PipelineFilter class and passing a function which receives and returns a surface object into its constructor.
+
+- Since the render pipeline is applied to the recurface's stored surface, any recurfaces which themselves have no surface will not implement
+  their pipeline during rendering
+
+## General Guidelines
+
+The recurfaces library is designed such that when a top-level recurface is rendered to a destination, the entire chain underneath it is
+handled automatically. In order for this to function seamlessly, it is highly recommended to observe the following rules:
+
+- Only one chain of recurfaces should be rendered to each external destination. If you have two or more separate chains
+  that you want to render to a single destination, merge them by making a new blank recurface
+  (no surface, and a `.render_position` of `(0, 0)`) and adding them both as children of that recurface
+- If, during runtime, you wish to change the render destination of a top-level recurface to a new destination, or wish to make visual modifications
+  to the render destination through means other than via that recurface chain (resizing it, rendering other surfaces to it etc.),
+  call `.flag_destination()` on the top-level recurface to notify it of the changes to its destination before its next render
+  - This is not necessary if you are attaching a previously top-level recurface as a child on a different recurface chain, rather than directly rendering that
+    recurface to a new destination
+  - Once a recurface is no longer rendering to a destination, that destination will have to be managed manually from that point onwards if it remains in use. 
+    If (for example) a new recurface will be rendered to it, the destination must first be cleared and updated manually
+- If you are modifying a recurface's stored surface in place (rather than replacing it outright), call `.flag_surface()` on that recurface to notify it
+  of these modifications before it is next rendered
+
+## Optimisation Tips
+
+###### WIP
