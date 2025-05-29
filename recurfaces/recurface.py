@@ -583,7 +583,6 @@ class Recurface:
             # Finding the most complete cached surface available
             for cached_surface_reverse_index, cached_surface in enumerate(reversed(self.__cached_surfaces)):
                 if cached_surface:
-                    working_surface = cached_surface.copy()
                     retrieved_cached_surface_index = (len(self.__cached_surfaces)-1) - cached_surface_reverse_index
                     next_cached_surface_index = retrieved_cached_surface_index + 1
 
@@ -594,6 +593,16 @@ class Recurface:
                             # If this is the cache flag corresponding to the retrieved cached surface
                             if cache_flag_reverse_index == cached_surface_reverse_index:
                                 cache_flag_pipeline_index = (len(self.__render_pipeline)-1) - pipeline_reverse_index
+
+                                if cache_flag_pipeline_index == len(self.__render_pipeline)-1:
+                                    """
+                                    If this is the last pipeline item, no further changes will be made to the surface.
+                                    Therefore, it's fine to use the cached surface directly rather than copying it
+                                    """
+                                    working_surface = cached_surface
+                                else:
+                                    working_surface = cached_surface.copy()
+
                                 # Rendering will resume from this point in the pipeline
                                 pipeline_index = cache_flag_pipeline_index + 1
                                 break
@@ -611,7 +620,7 @@ class Recurface:
 
                 if pipeline_item == PipelineFlag.CACHE_SURFACE:
                     if not is_surface_caching_blocked:
-                        if pipeline_index == len(self.__render_pipeline):
+                        if pipeline_index == len(self.__render_pipeline)-1:
                             """
                             If this is the last pipeline item,  no further changes will be made to the surface.
                             Therefore, it's fine to cache the original rather than a copy
