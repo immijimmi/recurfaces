@@ -123,4 +123,12 @@ handled automatically. In order for this to function seamlessly, it is highly re
 
 ## Optimisation Tips
 
-###### WIP
+- In cases where a large amount of moving recurfaces are being rendered, and a portion of them will be offscreen in any given frame,
+  it is highly recommended to determine which will be offscreen on the next frame and set them not to render at all (this can be done by
+  setting `.do_render` to False). 
+  Similarly, it is highly recommended to break up singular very large surfaces which will frequently be even partially offscreen into
+  multiple smaller surfaces if possible, and implement the same offscreen checks to determine which should be set to not render
+  - Because recurfaces composite their surfaces during rendering by copying their stored surfaces or cached surfaces, there is some overhead
+    associated with rendering images even when they are mostly or fully offscreen, and this overhead becomes significant for large amounts
+    of offscreen surface area (whether through singularly large surfaces, or through many smaller surfaces). 
+    This makes it very important to implement smart usage of `.do_render` to prevent offscreen objects from tanking performance
