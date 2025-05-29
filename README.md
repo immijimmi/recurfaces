@@ -132,3 +132,19 @@ handled automatically. In order for this to function seamlessly, it is highly re
     associated with rendering images even when they are mostly or fully offscreen, and this overhead becomes significant for large amounts
     of offscreen surface area (whether through singularly large surfaces, or through many smaller surfaces). 
     This makes it very important to implement smart usage of `.do_render` to prevent offscreen objects from tanking performance
+- To make the best use of the surface caching system, it is recommended to organise a recurface chain into branches
+  such that each branch contains a set of surfaces which are unlikely to frequently change relative to one another
+  - In the recurface chain represented by the illustration in [Structuring your Recurfaces](#structuring-your-recurfaces),
+    There are 3 branches under the 'root' top-level recurface. The first branch (skybox and mountains) contains only
+    surfaces which both do not move at all during gameplay, and so can be cached together. The second branch (forest and ground)
+    contains surfaces which scroll when the location of the player changes, but are both scrolled together and thus do not
+    move relative to one another, so can be cached together. The third branch contains only the player, as the player's surface
+    always changes in a way which does not match the other surfaces in the scene, and so does not benefit from being cached alongside them.
+  - Fewer and larger branches is better *as long as* none of the surfaces in a particular branch frequently move in relation to
+    the other surfaces contained in that branch, or frequently change when the others remain static, as larger branches allow
+    more surfaces to be cached together; in each branch of a chain, any frequently updated surface represents a caching bottleneck
+    for all of its parents further up that chain - the goal should be to have the fewest and largest branches as possible *after*
+    separating out these bottlenecks
+  - This approach to structuring recurface chains yields its biggest returns when it is used to separate out small,
+    frequently modified/moved surfaces from branches which contain large, infrequently modified surfaces. The bigger the
+    differences in size and update frequency between these surfaces, the larger the performance boost
