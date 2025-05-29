@@ -148,3 +148,8 @@ handled automatically. In order for this to function seamlessly, it is highly re
   - This approach to structuring recurface chains yields its biggest returns when it is used to separate out small,
     frequently modified/moved surfaces from branches which contain large, infrequently modified surfaces. The bigger the
     differences in size and update frequency between these surfaces, the larger the performance boost
+  - Since recurfaces which do not have a stored surface do not cache a surface, in order for sibling recurfaces to be cached together
+    they must be under a mutual parent somewhere further up the chain which has a surface of its own. This can even be a completely
+    blank surface, although adding an additional blank surface into the chain will come with associated overhead (particularly if
+    that surface is much larger than the surfaces being pasted onto it) and may be worse for performance than not caching
+    the sibling recurfaces together at all. The optimal approach will vary depending on each use case
