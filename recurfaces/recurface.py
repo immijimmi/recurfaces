@@ -611,7 +611,15 @@ class Recurface:
 
                 if pipeline_item == PipelineFlag.CACHE_SURFACE:
                     if not is_surface_caching_blocked:
-                        self.__cached_surfaces[next_cached_surface_index] = working_surface.copy()
+                        if pipeline_index == len(self.__render_pipeline):
+                            """
+                            If this is the last pipeline item,  no further changes will be made to the surface.
+                            Therefore, it's fine to cache the original rather than a copy
+                            """
+                            self.__cached_surfaces[next_cached_surface_index] = working_surface
+                        else:
+                            self.__cached_surfaces[next_cached_surface_index] = working_surface.copy()
+
                         next_cached_surface_index += 1
 
                 elif pipeline_item == PipelineFlag.APPLY_CHILDREN:
