@@ -383,6 +383,17 @@ class TestRecurface:
             )
 
         else:
+            """
+            As performance is heavily dependent on the specs and current state of the host machine, this test
+            checks against each calibration value exactly once before deleting it from the config file.
+
+            The intended usage is to calibrate just before running tests on a new commit (meaning that
+            the state of the machine should be as close as possible between calibration and testing)
+            """
+            del config[json_key]
+            with open(json_file_path, "w") as config_file:
+                config_file.write(dumps(config))
+
             # Limits will be set to 5% above/below calibration performance (typical deviation is no more than 2-3%)
             upper_limit_ms = round(target_ms * 1.05, rounding_precision)
             lower_limit_ms = round(target_ms * 0.95, rounding_precision)
@@ -393,11 +404,6 @@ class TestRecurface:
             )
 
             if performance_ms < lower_limit_ms:
-                # Delete stored target value from previous calibration, since this commit is significantly faster
-                del config[json_key]
-                with open(json_file_path, "w") as config_file:
-                    config_file.write(dumps(config))
-
                 raise RuntimeError(
                     "test completed faster than expected - please set a new calibration commit"
                     f" ({performance_ms}ms < {lower_limit_ms}ms)"
