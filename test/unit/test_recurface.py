@@ -328,7 +328,7 @@ class TestRecurface:
         target_ms = None
         json_file_path = "test/config.json"
         json_key = "test_performance_target_ms"
-        config = {json_key: None}
+        config = {}
         current_commit = get_commit_hash()
 
         # Loading config
@@ -371,8 +371,7 @@ class TestRecurface:
         performance_ms = round((end_time - start_time).total_seconds() * 1000, rounding_precision)
 
         if target_ms is None:  # Store calibration results
-            # Target will be set to 5% longer than calibration performance (typical deviation is no more than 2-3%)
-            target_ms = round(performance_ms * 1.05, rounding_precision)
+            target_ms = performance_ms
 
             config[json_key] = target_ms
             with open(json_file_path, "w") as config_file:
@@ -384,7 +383,22 @@ class TestRecurface:
             )
 
         else:
-            assert performance_ms <= target_ms, (
+            # Limits will be set to 5% above/below calibration performance (typical deviation is no more than 2-3%)
+            upper_limit_ms = round(target_ms * 1.05, rounding_precision)
+            lower_limit_ms = round(target_ms * 0.95, rounding_precision)
+
+            assert performance_ms <= upper_limit_ms, (
                 "test did not complete within the desired timeframe"
-                f" ({performance_ms}ms > {target_ms}ms)"
+                f" ({performance_ms}ms > {upper_limit_ms}ms)"
             )
+
+            if performance_ms < lower_limit_ms:
+                # Delete stored target value from previous calibration, since this commit is significantly faster
+                del config[json_key]
+                with open(json_file_path, "w") as config_file:
+                    config_file.write(dumps(config))
+
+                raise RuntimeError(
+                    "test completed faster than expected - please set a new calibration commit"
+                    f" ({performance_ms}ms < {lower_limit_ms}ms)"
+                )
