@@ -322,7 +322,7 @@ class TestRecurface:
         When making changes to this test, it should be set back to None in the commit which applies the changes,
         and then set to that commit's hash in the next commit
         """
-        calibration_commit = "2d8424c2a965f5905e34ac2b8a0b2937d4ad64f8"
+        calibration_commit = None
 
         rounding_precision = 3
         target_ms = None
