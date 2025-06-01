@@ -81,6 +81,8 @@ next frame if no changes which affect the rendered image are made in the interim
 Through this rendering pipeline it is possible to apply filters which make last-minute modifications to a recurface's surface when it is being
 rendered - this can include pasting additional layers onto the working copy of the surface, scaling and rotating it, etc.
 
+<img src="res/render_pipeline.png" alt="A diagram of an example configuration for a render pipeline, showing how each item in the pipeline is applied to the stored surface in order during rendering. Featured pipeline items are visual filters, flags to cache the working surface, and a flag to apply the child recurfaces">
+
 Filters can be created by importing the PipelineFilter class, and passing a function which receives and returns a surface object into its constructor:
 
 ```python
